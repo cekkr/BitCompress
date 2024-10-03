@@ -194,6 +194,9 @@ class GateBranch:
                 self.ports.remove(port)
 
     def optimize_or(self):
+        # Notes:
+        # (A*B)+(A*!B) => (A*B)+A => A
+        # (A*B)+ !(A) => B => !(A)
         args_in_ports = self.calculate_args_in_ports()
 
     def remove(self, arg):
