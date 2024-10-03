@@ -88,6 +88,29 @@ class GateBranch:
         # Cache
         self.last_hash = None
 
+    def calculate_args_in_ports(self):
+        if not self.status_base or self.gate != 'and':
+            return None
+
+        args_in_ports = {}
+        for arg in self.args:
+            for port in arg.ports:
+                if port not in args_in_ports:
+                    args_in_ports[port] = []
+                args_in_ports[port].append(arg)
+
+        return args_in_ports
+
+    def get_port_arg(self, index): # why did I write it?
+        if not self.status_base:
+            return None
+
+        for arg in self.args:
+            if arg.get_port() == index:
+                return arg
+
+        return None
+
     def calc_complexity(self, complexity=0):
         # Calculate num involved ports
         self.num_involved_ports = 0
@@ -111,8 +134,8 @@ class GateBranch:
     def increment_usage(self):
         self.usage += 1
 
-    def get_port_index(self):
-        if not self.status_base:
+    def get_port(self):
+        if not self.status_base or self.gate == 'and':
             return -1
 
         if self.gate == 'not':
@@ -125,7 +148,7 @@ class GateBranch:
             return -1
 
         for arg in self.args:
-            if arg.get_port_index() == port:
+            if arg.get_port() == port:
                 return 1 if arg.gate == 'not' else 0
 
         return -1
@@ -170,6 +193,9 @@ class GateBranch:
             if self.involved_ports[port] == 0:
                 self.ports.remove(port)
 
+    def optimize_or(self):
+        args_in_ports = self.calculate_args_in_ports()
+
     def remove(self, arg):
         if arg in self.args:
             self.args.remove(arg)
@@ -201,8 +227,7 @@ class GateBranch:
             self.args.insert(at, arg)
 
         if self.gate == 'or': # remove redundancies in OR
-            
-            pass
+            self.optimize_or()
 
         self.propagate_update()
 
