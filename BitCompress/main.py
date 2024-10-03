@@ -73,6 +73,9 @@ class GateBranch:
         self.up_complexity = -1
         self.status_base = True # if contains only elementary pins (or not pins)
         self.max_port = 0 if gate != 'pin' else value
+
+        # 50 shades of ports
+        self.ports = [] if gate != 'pin' else [value]
         self.involved_ports = {}
         self.num_involved_ports = -1
 
@@ -153,12 +156,19 @@ class GateBranch:
         for port, num in ports.items():
             if port not in self.involved_ports:
                 self.involved_ports[port] = 0
+                if num > 0:
+                    self.ports.append(port)
 
             self.involved_ports[port] += num
+
+        self.ports.sort()
 
     def remove_involved_ports(self, ports):
         for port, num in ports.items():
             self.involved_ports[port] -= num
+
+            if self.involved_ports[port] == 0:
+                self.ports.remove(port)
 
     def remove(self, arg):
         if arg in self.args:
@@ -179,7 +189,6 @@ class GateBranch:
 
         if arg.iGate > 1 or len(arg.args) > 0:
             self.status_base = False
-            #self.implicit_brothers = None
 
         arg.children.append(self)
 
@@ -187,6 +196,9 @@ class GateBranch:
             self.args.append(arg)
         else:
             self.args.insert(at, arg)
+
+        if self.gate == 'or': # remove redundancies in OR
+            pass
 
         self.propagate_update()
         curHash = self.get_hash()
