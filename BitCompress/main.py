@@ -190,6 +190,9 @@ class GateBranch:
         if arg.iGate > 1 or len(arg.args) > 0:
             self.status_base = False
 
+        if self.gate == 'not' and arg.status_base:
+            self.status_base = True
+
         arg.children.append(self)
 
         if at < 0:
@@ -198,11 +201,12 @@ class GateBranch:
             self.args.insert(at, arg)
 
         if self.gate == 'or': # remove redundancies in OR
+            
             pass
 
         self.propagate_update()
-        curHash = self.get_hash()
 
+        '''
         if addImplicitNotPortOnBrothers: #todo: move in an apart function
             if self.status_base and self.gate == 'and':
                 # Verify the validity of implicit brothers
@@ -226,6 +230,7 @@ class GateBranch:
                 # Look for implicit brothers
                 if curHash in self.map.gates:
                     self.implicit_brothers.append(self.map.gates[curHash])
+        '''
 
     def destroy(self, replace_with=None):
         for child in self.children:
@@ -255,14 +260,16 @@ class GateBranch:
             prevHash = self.last_hash
 
         self.last_hash = None
-        self.get_hash()
+        _hash = self.get_hash()
 
         if prevHash is not None:
             del self.map.gates[prevHash]
-            self.map.gates[self.last_hash] = self
+            self.map.gates[_hash] = self
 
         for child in self.children:
             child.propagate_update()
+
+        return _hash
 
     def __repr__(self):
         return self.get_hash()
