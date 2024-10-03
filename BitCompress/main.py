@@ -54,7 +54,8 @@ gates = ['pin', 'not', 'and', 'or']
 #enumerateGates = enumerate(gates)
 
 debugHash = True
-hideUnusedImplicitPins = False # seems that it should be always False for the moment
+hideUnusedImplicitPins = True
+addImplicitNotPortOnBrothers = False
 
 class GateBranch:
     def __init__(self, map, gate, value=-1):
@@ -115,6 +116,16 @@ class GateBranch:
             return self.args[0].value
 
         return self.value
+
+    def get_port_not(self, port):
+        if not self.status_base:
+            return -1
+
+        for arg in self.args:
+            if arg.get_port_index() == port:
+                return 1 if arg.gate == 'not' else 0
+
+        return -1
 
     def add_implicit_port(self, index, update=True):
         notGate = GateBranch(self, 'not')
@@ -180,28 +191,29 @@ class GateBranch:
         self.propagate_update()
         curHash = self.get_hash()
 
-        if self.status_base and self.gate == 'and':
-            # Verify the validity of implicit brothers
-            toRemove = []
-            for bro in self.implicit_brothers:
-                if bro.status_base != self.status_base:
-                    toRemove.append(bro)
-                else:
-                    implicitPorts = bro.add_implicit_port_upTo(self.max_port)
-                    if bro.get_hash() != curHash:
+        if addImplicitNotPortOnBrothers: #todo: move in an apart function
+            if self.status_base and self.gate == 'and':
+                # Verify the validity of implicit brothers
+                toRemove = []
+                for bro in self.implicit_brothers:
+                    if bro.status_base != self.status_base:
                         toRemove.append(bro)
+                    else:
+                        implicitPorts = bro.add_implicit_port_upTo(self.max_port)
+                        if bro.get_hash() != curHash:
+                            toRemove.append(bro)
 
-                        if hideUnusedImplicitPins:
-                            # Remove again forced implicit ports
-                            for iport in implicitPorts:
-                                bro.remove(iport)
+                            if hideUnusedImplicitPins:
+                                # Remove again forced implicit ports
+                                for iport in implicitPorts:
+                                    bro.remove(iport)
 
-            for rem in toRemove:
-                self.implicit_brothers.remove(rem)
+                for rem in toRemove:
+                    self.implicit_brothers.remove(rem)
 
-            # Look for implicit brothers
-            if curHash in self.map.gates:
-                self.implicit_brothers.append(self.map.gates[curHash])
+                # Look for implicit brothers
+                if curHash in self.map.gates:
+                    self.implicit_brothers.append(self.map.gates[curHash])
 
     def destroy(self, replace_with=None):
         for child in self.children:
