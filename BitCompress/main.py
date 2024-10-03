@@ -250,7 +250,10 @@ class GateBranch:
         return hash
 
 
+# Implement XOR only on final circuit (?)
 # Remember: XOR = (A AND (NOT B)) OR ((NOT A) AND B)
+# XOR(A, B, C) = (A & ~B & ~C) | (~A & B & ~C) | (~A & ~B & C) | (A & B & C) => XOR(XOR(A, B),C)
+
 optimizeNotNot = False
 disableCheckGateOptimize = False
 
