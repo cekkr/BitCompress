@@ -349,11 +349,17 @@ if False:
     map.set([0, 1], 1)
     map.set([1, 1], 0)
 
-if True:
+if False:
     map.set([0], 1)
     map.set([1],0)
     map.set([0, 1], 0)
     map.set([1, 1], 1)
+
+if True: # unneeded pin example
+    map.set([0], 1)
+    map.set([1], 0)
+    map.set([0, 1], 1)
+    map.set([1, 1], 0)
 
 map.final_compression()
 
