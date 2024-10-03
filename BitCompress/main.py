@@ -153,9 +153,8 @@ class GateBranch:
         if arg in self.args:
             self.args.remove(arg)
 
-            if not arg.status_base:
-                if self in arg.children:
-                    arg.children.remove(self)
+            if self in arg.children: # and not arg.status_base (ignored because useless)
+                arg.children.remove(self)
 
             self.remove_involved_ports(arg.involved_ports)
 
@@ -277,8 +276,8 @@ class GateBranch:
 # Remember: XOR = (A AND (NOT B)) OR ((NOT A) AND B)
 # XOR(A, B, C) = (A & ~B & ~C) | (~A & B & ~C) | (~A & ~B & C) | (A & B & C) => XOR(XOR(A, B),C)
 
-optimizeNotNot = False
 disableCheckGateOptimize = False
+ignoreNotPin = True
 
 class BitsMap:
     def __init__(self):
@@ -315,6 +314,9 @@ class BitsMap:
             gate = pin
 
             if series[i] == 0:
+                if ignoreNotPin:
+                    continue
+
                 notGate = GateBranch(self, 'not')
                 notGate.add(pin)
                 gate = self.check_gate(notGate)
@@ -322,21 +324,18 @@ class BitsMap:
 
             andGate.add(gate)
 
-        if len(andGate.args) > 1 or not optimizeNotNot:
-            andGate = self.check_gate(andGate)
-            andGate.increment_usage()
-        else:
-            andGate = andGate.args[0]
+        if len(andGate.args) == 0:
+            return
+
+        andGate = self.check_gate(andGate)
+        andGate.increment_usage()
 
         if bit == 0:
-            if andGate.gate == 'not' and optimizeNotNot:
-                self.map.add(andGate.args[0])
-            else:
-                notAndGate = GateBranch(self, 'not')
-                notAndGate.add(andGate)
-                notAndGate = self.check_gate(notAndGate)
-                notAndGate.increment_usage()
-                self.map.add(notAndGate)
+            notAndGate = GateBranch(self, 'not')
+            notAndGate.add(andGate)
+            notAndGate = self.check_gate(notAndGate)
+            notAndGate.increment_usage()
+            self.map.add(notAndGate)
         else:
             self.map.add(andGate)
 
