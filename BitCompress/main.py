@@ -93,7 +93,7 @@ class GateBranch:
     def add_implicit_port(self, upToIndex):
         addedPorts = []
 
-        for i in range(self.max_port+1, upToIndex):
+        for i in range(self.max_port+1, upToIndex+1):
             notGate = GateBranch(self, 'not')
             notGate.add(self.map.pins[i])
             notGate = self.map.check_gate(notGate)
