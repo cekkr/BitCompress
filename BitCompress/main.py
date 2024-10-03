@@ -54,11 +54,11 @@ gates = ['pin', 'not', 'and', 'or']
 #enumerateGates = enumerate(gates)
 
 debugHash = True
-
+hideUnusedImplicitPins = False # seems that it should be always False for the moment
 
 class GateBranch:
     def __init__(self, map, gate, value=-1):
-        self.map = map
+        self.map: BitsMap = map
 
         self.gate = gate
         self.iGate = gates.index(gate)
@@ -70,6 +70,8 @@ class GateBranch:
         self.children: [GateBranch] = []
         self.down_complexity = 0
         self.up_complexity = 0
+        self.status_base = True # if contains only elementary pins (or not pins)
+        self.max_port = 0 if gate != 'pin' else value
 
         self.implicit_brothers = []
 
@@ -79,7 +81,40 @@ class GateBranch:
     def increment_usage(self):
         self.usage += 1
 
+    def get_port_index(self):
+        if not self.status_base:
+            return -1
+
+        if self.gate == 'not':
+            return self.args[0].value
+
+        return self.value
+
+    def add_implicit_port(self, upToIndex):
+        addedPorts = []
+
+        for i in range(self.max_port+1, upToIndex):
+            notGate = GateBranch(self, 'not')
+            notGate.add(self.map.pins[i])
+            notGate = self.map.check_gate(notGate)
+            self.add(notGate)
+            addedPorts.append(notGate)
+
+        return addedPorts
+
+    def remove(self, arg):
+        if arg in self.args:
+            self.args.remove(arg)
+
     def add(self, arg, at=-1):
+
+        if arg.status_base:
+            if arg.max_port > self.max_port:
+                self.max_port = arg.max_port
+
+        if arg.iGate > 1 or len(arg.args) > 0:
+            self.status_base = False
+
         arg.children.append(self)
 
         if at < 0:
@@ -88,13 +123,32 @@ class GateBranch:
             self.args.insert(at, arg)
 
         self.propagate_update()
-
-        # Look for implicit brothers
         curHash = self.get_hash()
-        if curHash in self.map.gates:
-            self.implicit_brothers.append(self.map.gates[curHash])
 
-        # Calculate complexities
+        if self.status_base and self.gate == 'and':
+            # Verify the validity of implicit brothers
+            toRemove = []
+            for bro in self.implicit_brothers:
+                if bro.status_base != self.status_base:
+                    toRemove.append(bro)
+                else:
+                    implicitPorts = bro.add_implicit_port(self.max_port)
+                    if bro.get_hash() != curHash:
+                        toRemove.append(bro)
+
+                        if hideUnusedImplicitPins:
+                            # Remove again forced implicit ports
+                            for iport in implicitPorts:
+                                bro.remove(iport)
+
+            for rem in toRemove:
+                self.implicit_brothers.remove(rem)
+
+            # Look for implicit brothers
+            if curHash in self.map.gates:
+                self.implicit_brothers.append(self.map.gates[curHash])
+
+        # Calculate complexities (are them still useful? i don't think anymore)
         comp = self.up_complexity + 1
         if comp > arg.up_complexity:
             arg.up_complexity = comp
@@ -169,6 +223,7 @@ class GateBranch:
 
 # Remember: XOR = (A AND (NOT B)) OR ((NOT A) AND B)
 optimizeNotNot = False
+disableCheckGateOptimize = False
 
 class BitsMap:
     def __init__(self):
@@ -182,7 +237,7 @@ class BitsMap:
             return self.gates[hash]
         else:
             self.gates[hash] = gate
-            gate.optimize()
+            gate.optimize() if not disableCheckGateOptimize else None
             return gate
 
     def set(self, series, bit):
@@ -226,10 +281,18 @@ class BitsMap:
 
 
 map = BitsMap()
-map.set([0], 1)
-map.set([1], 1)
-map.set([0, 1], 1)
-map.set([1, 1], 0)
+
+if False:
+    map.set([0], 1)
+    map.set([1], 1)
+    map.set([0, 1], 1)
+    map.set([1, 1], 0)
+
+if True:
+    map.set([0], 1)
+    map.set([1],0)
+    map.set([0, 1], 0)
+    map.set([1, 1], 1)
 
 print("check")
 
