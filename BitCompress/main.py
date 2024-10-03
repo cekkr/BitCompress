@@ -68,11 +68,12 @@ class GateBranch:
         # Optimization
         self.usage = 0
         self.children: [GateBranch] = []
-        self.down_complexity = 0
-        self.up_complexity = 0
+        self.down_complexity = -1
+        self.up_complexity = -1
         self.status_base = True # if contains only elementary pins (or not pins)
         self.max_port = 0 if gate != 'pin' else value
         self.involved_ports = {}
+        self.num_involved_ports = -1
 
         if gate == 'pin':
             self.max_port = value
@@ -82,6 +83,26 @@ class GateBranch:
 
         # Cache
         self.last_hash = None
+
+    def calc_complexity(self, complexity=0):
+        # Calculate num involved ports
+        self.num_involved_ports = 0
+        for port, val in self.involved_ports.items():
+            if val > 0:
+                self.num_involved_ports += 1
+
+        # Calculate complexity
+        self.down_complexity = complexity
+
+        complexity += 1
+        max_complexity = 0
+        for child in self.children:
+            compl = child.calc_complexity(complexity)
+            if compl > max_complexity:
+                max_complexity = compl
+
+        self.up_complexity = max_complexity
+        return self.up_complexity + 1
 
     def increment_usage(self):
         self.usage += 1
@@ -183,15 +204,6 @@ class GateBranch:
             if curHash in self.map.gates:
                 self.implicit_brothers.append(self.map.gates[curHash])
 
-        # Calculate complexities (are them still useful? i don't think anymore)
-        comp = self.up_complexity + 1
-        if comp > arg.up_complexity:
-            arg.up_complexity = comp
-
-        comp = arg.down_complexity + 1
-        if comp > self.down_complexity:
-            self.down_complexity = comp
-
     def destroy(self, replace_with=None):
         for child in self.children:
             if replace_with is not None:
@@ -275,7 +287,10 @@ class BitsMap:
         self.map = GateBranch(self, 'or')
 
     def final_compression(self):
-        pass
+        for pin in self.pins:
+            pin.calc_complexity()
+
+        print("check")
 
     def check_gate(self, gate) -> GateBranch:
         hash = gate.get_hash()
@@ -339,6 +354,8 @@ if True:
     map.set([1],0)
     map.set([0, 1], 0)
     map.set([1, 1], 1)
+
+map.final_compression()
 
 print("check")
 
