@@ -72,6 +72,11 @@ class GateBranch:
         self.up_complexity = 0
         self.status_base = True # if contains only elementary pins (or not pins)
         self.max_port = 0 if gate != 'pin' else value
+        self.involved_ports = {}
+
+        if gate == 'pin':
+            self.max_port = value
+            self.involved_ports[value] = 1
 
         self.implicit_brothers = []
 
@@ -90,21 +95,37 @@ class GateBranch:
 
         return self.value
 
-    def add_implicit_port(self, upToIndex):
+    def add_implicit_port(self, index):
+        notGate = GateBranch(self, 'not')
+        notGate.add(self.map.pins[index])
+        notGate = self.map.check_gate(notGate)
+        self.add(notGate)
+        return notGate
+
+    def add_implicit_port_upTo(self, upToIndex):
         addedPorts = []
 
-        for i in range(self.max_port+1, upToIndex+1):
-            notGate = GateBranch(self, 'not')
-            notGate.add(self.map.pins[i])
-            notGate = self.map.check_gate(notGate)
-            self.add(notGate)
+        for i in range(self.max_port, upToIndex):
+            notGate = self.add_implicit_port(i+1)
             addedPorts.append(notGate)
 
         return addedPorts
 
+    def add_involved_ports(self, ports):
+        for port, num in ports.items():
+            if port not in self.involved_ports:
+                self.involved_ports[port] = 0
+
+            self.involved_ports[port] += num
+
+    def remove_involved_ports(self, ports):
+        for port, num in ports.items():
+            self.involved_ports[port] -= num
+
     def remove(self, arg):
         if arg in self.args:
             self.args.remove(arg)
+            self.remove_involved_ports(arg.involved_ports)
 
     def add(self, arg, at=-1):
 
@@ -112,8 +133,11 @@ class GateBranch:
             if arg.max_port > self.max_port:
                 self.max_port = arg.max_port
 
+        self.add_involved_ports(arg.involved_ports)
+
         if arg.iGate > 1 or len(arg.args) > 0:
             self.status_base = False
+            #self.implicit_brothers = None
 
         arg.children.append(self)
 
@@ -132,7 +156,7 @@ class GateBranch:
                 if bro.status_base != self.status_base:
                     toRemove.append(bro)
                 else:
-                    implicitPorts = bro.add_implicit_port(self.max_port)
+                    implicitPorts = bro.add_implicit_port_upTo(self.max_port)
                     if bro.get_hash() != curHash:
                         toRemove.append(bro)
 
@@ -180,11 +204,16 @@ class GateBranch:
         self.implicit_brothers.clear()
 
     def propagate_update(self):
+        prevHash = None
         if self.last_hash is not None and self.last_hash in self.map.gates:
-            del self.map.gates[self.last_hash]
+            prevHash = self.last_hash
 
         self.last_hash = None
         self.get_hash()
+
+        if prevHash is not None:
+            del self.map.gates[prevHash]
+            self.map.gates[self.last_hash] = self
 
         for child in self.children:
             child.propagate_update()
