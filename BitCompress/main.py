@@ -95,19 +95,25 @@ class GateBranch:
 
         return self.value
 
-    def add_implicit_port(self, index):
+    def add_implicit_port(self, index, update=True):
         notGate = GateBranch(self, 'not')
         notGate.add(self.map.pins[index])
         notGate = self.map.check_gate(notGate)
         self.add(notGate)
+
+        if update:
+            self.propagate_update()
+
         return notGate
 
     def add_implicit_port_upTo(self, upToIndex):
         addedPorts = []
 
         for i in range(self.max_port, upToIndex):
-            notGate = self.add_implicit_port(i+1)
+            notGate = self.add_implicit_port(i+1, False)
             addedPorts.append(notGate)
+
+        self.propagate_update()
 
         return addedPorts
 
@@ -125,6 +131,11 @@ class GateBranch:
     def remove(self, arg):
         if arg in self.args:
             self.args.remove(arg)
+
+            if not arg.status_base:
+                if self in arg.children:
+                    arg.children.remove(self)
+
             self.remove_involved_ports(arg.involved_ports)
 
     def add(self, arg, at=-1):
@@ -262,6 +273,9 @@ class BitsMap:
         self.pins: [GateBranch] = []
         self.gates = {}
         self.map = GateBranch(self, 'or')
+
+    def final_compression(self):
+        pass
 
     def check_gate(self, gate) -> GateBranch:
         hash = gate.get_hash()
