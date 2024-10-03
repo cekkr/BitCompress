@@ -79,9 +79,13 @@ class GateBranch:
     def increment_usage(self):
         self.usage += 1
 
-    def add(self, arg):
+    def add(self, arg, at=-1):
         arg.children.append(self)
-        self.args.append(arg)
+
+        if at < 0:
+            self.args.append(arg)
+        else:
+            self.args.insert(at, arg)
 
         self.propagate_update()
 
@@ -104,22 +108,32 @@ class GateBranch:
             if replace_with is not None:
                 if child not in replace_with.children:
                     pos = child.args.index(self)
-                    child.args.insert(pos, replace_with)
-                else:
-                    child.args.append(replace_with)
+                    child.add(replace_with, at=pos)
 
             child.args.remove(self)
+
+        hash = self.get_hash()
+        if hash in self.map.gates:
+            del self.map.gates[hash]
 
     def optimize(self):
         for implicit_bro in self.implicit_brothers:
             implicit_bro.destroy(replace_with=self)
 
+        if len(self.implicit_brothers) > 0:
+            self.propagate_update()
+
         self.implicit_brothers.clear()
 
     def propagate_update(self):
-      self.last_hash = None
-      for child in self.children:
-        child.propagate_update()
+        if self.last_hash is not None and self.last_hash in self.map.gates:
+            del self.map.gates[self.last_hash]
+
+        self.last_hash = None
+        self.get_hash()
+
+        for child in self.children:
+            child.propagate_update()
 
     def __repr__(self):
         return self.get_hash()
