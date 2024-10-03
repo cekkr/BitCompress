@@ -94,7 +94,8 @@ class GateBranch:
 
         args_in_ports = {}
         for arg in self.args:
-            for port in arg.ports:
+            argPorts = arg if arg.gate != 'not' else arg.args[0]
+            for port in argPorts.ports:
                 if port not in args_in_ports:
                     args_in_ports[port] = []
                 args_in_ports[port].append(arg)
