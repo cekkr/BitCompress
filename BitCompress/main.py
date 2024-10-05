@@ -106,19 +106,26 @@ class GateBranch:
         # Cache
         self.last_hash = None
 
-    def calculate_args_in_ports(self, args_in_ports=None):
+    def calculate_args_in_ports(self, args_in_ports=None, distinguish_not=True):
         if args_in_ports is None:
             args_in_ports = {}
 
         for arg in self.args:
             if self.gate == 'or' or not self.is_basic:
-                arg.calculate_args_in_ports(args_in_ports)
+                arg.calculate_args_in_ports(args_in_ports, distinguish_not=distinguish_not)
             else: # is 'and'
-                argPorts = arg if arg.gate != 'not' else arg.args[0]
-                for port in argPorts.ports:
-                    if port not in args_in_ports:
-                        args_in_ports[port] = []
-                    args_in_ports[port].append(arg)
+                argPorts = arg.get_base_pins()
+                for port in argPorts:
+                    pin_num = port.value
+
+                    if distinguish_not:
+                        if port.gate == 'not':
+                            pin_num = '!'+pin_num
+
+                    if pin_num not in args_in_ports:
+                        args_in_ports[pin_num] = []
+
+                    args_in_ports[pin_num].append(arg)
 
         return args_in_ports
 
@@ -148,9 +155,9 @@ class GateBranch:
     def get_base_pins(self):
         #todo: cache into self.ports
         if self.is_base_pin:
-            return [self.get_port()]
+            return [self]
 
-        if self.gate == 'not':
+        if self.gate == 'not': # if self.is_base_pin is by consequence a top pin
             return self.args[0].get_base_pins()
 
         base_pins = []
@@ -160,9 +167,12 @@ class GateBranch:
 
         return base_pins
 
-    def get_base_pin(self, index):
+    def get_base_pin(self, pin_number):
+        if self.is_base_pin and self.get_port() == pin_number:
+            return self
+
         for arg in self.args:
-            if arg.is_base_pin and arg.get_port() == index:
+            if arg.is_base_pin and arg.get_port() == pin_number:
                 return arg
 
         return None
