@@ -203,6 +203,7 @@ class GateBranch:
                 self.ports.remove(port)
 
     def set_always_true(self):
+        print("OR always true")
         pass #todo: ok, this gate is always true
 
     def optimize_or(self):
@@ -240,25 +241,43 @@ class GateBranch:
 
         # Convert NOT AND to OR NOTS
         # !(A*B) => !A + !B + NOT_IMPLICIT
-        add_base_pins = []
-        for arg in self.args:
-            if arg.gate == 'not' and not arg.is_base_pin:
-                if self.implicit == 0:
-                    self.implicit = 1
+        if self.implicit == 0:
+            for arg in self.args:
+                if arg.gate == 'not' and not arg.is_base_pin:
                     arg_base_pins = arg.get_base_pins()
 
                     for base_pin in arg_base_pins:
-                        add_base_pins.append(base_pin)
+                        not_base_pin = GateBranch(self.map, 'not')
+                        not_base_pin.add(base_pin)
+                        self.add(not_base_pin)
 
-        for base_pin in add_base_pins:
-            not_base_pin = GateBranch(self.map, 'not')
-            not_base_pin.add(base_pin)
-            self.add(not_base_pin)
+                    self.implicit = 1
+                    break
+
+        if self.implicit == 1:
+            base_pins = self.get_base_pins()
+            for arg in self.args:
+                if arg.gate == 'not' and not arg.is_base_pin and arg.is_basic:
+                    arg_base_pins = arg.get_base_pins()
+
+                    if len(arg_base_pins) != len(base_pins):
+                        self.set_always_true()
+                        return
+
+                    for arg_base_pin in arg_base_pins:
+                        if arg_base_pin not in base_pins:
+                            self.set_always_true()
+                            return
+
+                    for base_pin in base_pins:
+                        if base_pin not in arg_base_pins:
+                            self.set_always_true()
+                            return
 
         # Notes:
         # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
         args_in_ports = self.calculate_args_in_ports()
-        print("check")
+        
 
     def remove(self, arg):
         if arg in self.args:
