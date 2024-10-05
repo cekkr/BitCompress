@@ -92,6 +92,7 @@ class GateBranch:
         self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
         self.implicit = 1 if self.is_basic and self.gate == 'and' else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
+        self.implicit_not = False
 
         # 50 shades of ports
         self.ports = [] if gate != 'pin' else [value]
@@ -309,6 +310,8 @@ class GateBranch:
                             self.set_always_true()
                             return
 
+                    print("succes")
+
         # Notes:
         # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
         args_in_ports = self.calculate_args_in_ports()
@@ -424,7 +427,12 @@ class GateBranch:
         if self.last_hash is not None:
             return self.last_hash
 
-        hash = str(self.i_gate)
+        hash = ''
+
+        if self.implicit_not:
+            hash += '!'
+
+        hash += str(self.i_gate)
 
         if self.value >= 0:
             hash += ':' + str(self.value)
@@ -490,7 +498,7 @@ class BitsMap:
 
             gate = pin
 
-            if series[i] == 0:
+            if series[i] == 0: # != bit
                 if ignoreNotPin:
                     continue
 
@@ -504,18 +512,22 @@ class BitsMap:
         if len(andGate.args) == 0:
             return
 
+        andGate.implicit_not = True
         andGate = self.check_gate(andGate)
         andGate.increment_usage()
 
+        self.map.add(andGate)
+
+        '''
         if bit == 0:
-            notAndGate = GateBranch(self, 'not')
+            notAndGate = GateBranch(self, 'not') #todo: REMEMBER: THIS IS AN IMPLICIT WRAPPER
             notAndGate.add(andGate)
             notAndGate = self.check_gate(notAndGate)
             notAndGate.increment_usage()
             self.map.add(notAndGate)
         else:
             self.map.add(andGate)
-
+        '''
 
 map = BitsMap()
 
