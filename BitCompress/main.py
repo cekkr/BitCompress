@@ -71,7 +71,7 @@ class GateBranch:
         self.children: [GateBranch] = []
         self.down_complexity = -1
         self.up_complexity = -1
-        self.status_base = True # if contains only elementary pins (or not pins)
+        self.is_base_pin = True # if contains only elementary pins (or not pins)
         self.max_port = 0 if gate != 'pin' else value
 
         # 50 shades of ports
@@ -88,29 +88,24 @@ class GateBranch:
         # Cache
         self.last_hash = None
 
-    def calculate_args_in_ports(self):
-        if not self.status_base or self.gate != 'and':
+    def calculate_args_in_ports(self, args_in_ports=None):
+        if args_in_ports is None:
+            args_in_ports = {}
+
+        if not self.is_base_pin:
             return None
 
-        args_in_ports = {}
         for arg in self.args:
-            argPorts = arg if arg.gate != 'not' else arg.args[0]
-            for port in argPorts.ports:
-                if port not in args_in_ports:
-                    args_in_ports[port] = []
-                args_in_ports[port].append(arg)
+            if self.gate == 'or':
+                arg.calculate_args_in_ports(args_in_ports)
+            else:
+                argPorts = arg if arg.gate != 'not' else arg.args[0]
+                for port in argPorts.ports:
+                    if port not in args_in_ports:
+                        args_in_ports[port] = []
+                    args_in_ports[port].append(arg)
 
         return args_in_ports
-
-    def get_port_arg(self, index): # why did I write it?
-        if not self.status_base:
-            return None
-
-        for arg in self.args:
-            if arg.get_port() == index:
-                return arg
-
-        return None
 
     def calc_complexity(self, complexity=0):
         # Calculate num involved ports
@@ -136,7 +131,7 @@ class GateBranch:
         self.usage += 1
 
     def get_port(self):
-        if not self.status_base or self.gate == 'and':
+        if not self.is_base_pin or self.iGate > 1:
             return -1
 
         if self.gate == 'not':
@@ -145,7 +140,7 @@ class GateBranch:
         return self.value
 
     def get_port_not(self, port):
-        if not self.status_base:
+        if not self.is_base_pin:
             return -1
 
         for arg in self.args:
@@ -199,29 +194,27 @@ class GateBranch:
         # (A*B)+(A*!B) => (A*B)+A => A
         # (A*B)+ !(A) => B => !(A)
         args_in_ports = self.calculate_args_in_ports()
+        print("check")
 
     def remove(self, arg):
         if arg in self.args:
             self.args.remove(arg)
 
-            if self in arg.children: # and not arg.status_base (ignored because useless)
+            if self in arg.children:
                 arg.children.remove(self)
 
             self.remove_involved_ports(arg.involved_ports)
 
     def add(self, arg, at=-1):
 
-        if arg.status_base:
+        if arg.is_base_pin:
             if arg.max_port > self.max_port:
                 self.max_port = arg.max_port
 
         self.add_involved_ports(arg.involved_ports)
 
-        if arg.iGate > 1 or len(arg.args) > 0:
-            self.status_base = False
-
-        if self.gate == 'not' and arg.status_base:
-            self.status_base = True
+        if self.gate == 'not' and arg.is_base_pin:
+            self.is_base_pin = True
 
         arg.children.append(self)
 
