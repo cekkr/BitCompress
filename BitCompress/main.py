@@ -255,7 +255,7 @@ class GateBranch:
         ports_groups = calculate_ports_groups(args_in_ports)
 
         if len(ports_groups) > 0:
-            pass #todo: handle discovered groups
+            print("todo: handle grouping") #todo: handle discovered groups
 
         print("check")
 
