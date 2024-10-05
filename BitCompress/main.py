@@ -72,6 +72,7 @@ class GateBranch:
         self.down_complexity = -1
         self.up_complexity = -1
         self.is_base_pin = True # if contains only elementary pins (or not pins)
+        self.is_basic = True # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
 
         # 50 shades of ports
@@ -92,13 +93,10 @@ class GateBranch:
         if args_in_ports is None:
             args_in_ports = {}
 
-        if not self.is_base_pin:
-            return None
-
         for arg in self.args:
-            if self.gate == 'or':
+            if self.gate == 'or' or not self.is_basic:
                 arg.calculate_args_in_ports(args_in_ports)
-            else:
+            else: # is 'and'
                 argPorts = arg if arg.gate != 'not' else arg.args[0]
                 for port in argPorts.ports:
                     if port not in args_in_ports:
