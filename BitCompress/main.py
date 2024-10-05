@@ -1,5 +1,5 @@
 import struct
-
+from grouping import *
 
 def get_bits(n):
     """
@@ -64,18 +64,6 @@ def get_not_pins(pins):
         if pin.gate == 'not' and pin.is_base_pin:
             nots.append(pin.args[0])
     return nots
-
-def sort_dict_by_length(dict):
-    length = {}
-    for k,v in dict.items():
-        length[k] = len(v)
-
-    return sorted(length.items(), key=lambda x: x[1])
-
-def calculate_ports_groups(gates_by_ports):
-    groups = {}
-    ports_sorted = sort_dict_by_length(gates_by_ports)
-    return groups
 
 #########################################################
 
