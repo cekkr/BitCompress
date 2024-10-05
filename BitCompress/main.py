@@ -252,6 +252,7 @@ class GateBranch:
                         self.add(not_base_pin)
 
                     self.implicit = 1
+                    self.remove(arg)
                     break
 
         if self.implicit == 1:
@@ -277,7 +278,7 @@ class GateBranch:
         # Notes:
         # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
         args_in_ports = self.calculate_args_in_ports()
-        
+
 
     def remove(self, arg):
         if arg in self.args:
@@ -287,6 +288,7 @@ class GateBranch:
                 arg.children.remove(self)
 
             self.remove_involved_ports(arg.involved_ports)
+            arg.check_if_used()
 
     def add(self, arg, at=-1):
 
@@ -346,11 +348,16 @@ class GateBranch:
 
             child.args.remove(self)
 
-        hash = self.get_hash()
-        if hash in self.map.gates:
-            del self.map.gates[hash]
+        self.check_if_used()
+
+    def check_if_used(self):
+        if len(self.children) == 0:
+            hash = self.get_hash()
+            if hash in self.map.gates:
+                del self.map.gates[hash]
 
     def optimize(self):
+        #todo: self.implicit_brothers currently not used
         for implicit_bro in self.implicit_brothers:
             implicit_bro.destroy(replace_with=self)
 
