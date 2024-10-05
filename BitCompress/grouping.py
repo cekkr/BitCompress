@@ -71,20 +71,16 @@ class CombinationGroups: # a confusing name for a confusing file
     def calc_gain(self):
         gates = []
         hash_gate = {}
-        gate_repeat = {}
         gates_group = {}
-        gain = 0
+
+        tot_ops = 0
         for group in self.groups:
-            gain += group.get_gain()
+            tot_ops += len(group.ports)
             for gate in group.gates:
                 if gate not in gates:
                     gates.append(gate)
 
                 ghash = gate.get_hash()
-
-                if ghash not in gate_repeat:
-                    gate_repeat[ghash] = 0
-                gate_repeat[ghash] += 1
 
                 if ghash not in gates_group:
                     gates_group[ghash] = []
@@ -94,20 +90,16 @@ class CombinationGroups: # a confusing name for a confusing file
 
         for ghash, groups in gates_group.items():
             gate = hash_gate[ghash]
-
-            tot_ops = len(groups)
             tot_ports = []
-            repeated = 0
             for group in groups:
                 for port in group.ports:
                     if port not in tot_ports:
                         tot_ports.append(port)
-                    else:
-                        repeated += 1
 
+            gate_ports = gate.get_base_pins()
+            tot_ops += (len(gate_ports)-len(tot_ports))
 
-
-        return gain
+        return tot_ops
 
 class CombinationGroup:
     def __init__(self, gates_by_ports, parent=None):
