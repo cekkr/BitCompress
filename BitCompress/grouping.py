@@ -27,7 +27,7 @@ class GroupsSeeker():
     def __init__(self, gates_by_ports):
         self.gates_by_ports = gates_by_ports
 
-        self.combs = {0: [CombinationGroups(self.gates_by_ports)]}
+        self.combs = {0: [CombinationGroup(self.gates_by_ports)]}
         self.max_gain = 0
         self.best_comb = None
 
@@ -64,11 +64,15 @@ class GroupsSeeker():
         #todo
         return combs
 
-class CombinationGroups:
+class CombinationGroups: # a confusing name for a confusing file
+    def __init__(self):
+        self.groups = []
+
+class CombinationGroup:
     def __init__(self, gates_by_ports, parent=None):
         self.parent = parent
 
-        self.fixed = []
+        self.ports = []
         self.gates_by_ports = gates_by_ports
         self.gates = []
         self.sub_combs = []
@@ -80,10 +84,10 @@ class CombinationGroups:
             self.parent.sub_combs.remove(self)
 
     def get_gain(self):
-        return len(self.gates) - len(self.fixed)
+        return (len(self.gates)*len(self.ports)) - len(self.gates)
 
     def fork(self):
-        comb = CombinationGroups(self.gates_by_ports)
+        comb = CombinationGroup(self.gates_by_ports)
         comb.gates = self.gates
         comb.gain = self.gain
 
@@ -91,13 +95,20 @@ class CombinationGroups:
         return comb
 
     def include_gates(self, port):
+        if port in self.ports:
+            return
+
         for gate in self.gates_by_ports[port]:
             if gate not in self.gates:
                 self.gates.append(gate)
                 self.gain += 1
 
     def check_include(self, port):
-        num_gates = 0
+        num_gates = self.gain
+
+        if port in self.ports:
+            return num_gates
+
         for gate in self.gates_by_ports[port]:
             if gate not in self.gates:
                 num_gates += 1
@@ -107,9 +118,9 @@ class CombinationGroups:
     def check(self, port):
         include = False
 
-        if len(self.fixed) == 0:
+        if len(self.ports) == 0:
             include = True
 
         if include:
-            self.fixed.append(port)
+            self.ports.append(port)
             self.include_gates(port)
