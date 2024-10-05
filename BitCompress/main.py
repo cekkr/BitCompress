@@ -65,6 +65,13 @@ def get_not_pins(pins):
             nots.append(pin.args[0])
     return nots
 
+def sort_dict_by_length(dict):
+    length = {}
+    for k,v in dict.items():
+        length[k] = len(v)
+
+    return sorted(length.items(), key=lambda x: x[1])
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -252,6 +259,8 @@ class GateBranch:
         # (!A*!B)+(!A*B)+(A*!B) => !(A*B)   AND!()+AND!(A)+AND!(B)
         # (!A*B)+(A*!B) => XOR(A,B)         AND!(B)+AND!(A)
         args_in_ports = self.calculate_args_in_ports()
+        ports_sorted = sort_dict_by_length(args_in_ports)
+
         print("check")
 
     def remove(self, arg):
