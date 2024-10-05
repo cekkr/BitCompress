@@ -129,6 +129,20 @@ class GateBranch:
     def increment_usage(self):
         self.usage += 1
 
+    def get_base_pins(self):
+        if self.is_base_pin:
+            return [self.get_port()]
+
+        if self.gate == 'not':
+            return self.args[0].get_base_pins()
+
+        base_pins = []
+        for arg in self.args:
+            if arg.is_base_pin:
+                base_pins.append(arg)
+
+        return base_pins
+
     def get_port(self):
         if not self.is_base_pin or self.i_gate > 1:
             return -1
@@ -188,8 +202,14 @@ class GateBranch:
             if self.involved_ports[port] == 0:
                 self.ports.remove(port)
 
+    def set_always_true(self):
+        pass #todo: ok, this gate is always true
+
     def optimize_or(self):
-        # First of all, void opposite gates (and duplicates)
+        if self.gate != 'or':
+            return
+
+        # First of all, check opposite gates (and duplicates)
         hashes_one = {}
         hashes_zero = {}
         to_remove = []
@@ -209,17 +229,34 @@ class GateBranch:
                 to_remove.append(arg)
             else:
                 if hash in opposite_hashes:
-                    to_remove.append(arg)
-                    to_remove.append(opposite_hashes[hash])
+                    # OR of opposite pins is always true
+                    self.set_always_true()
+                    return
                 else:
                     hashes[hash] = arg
 
         for rem in to_remove:
             self.args.remove(rem)
 
+        # Convert NOT AND to OR NOTS
+        # !(A*B) => !A + !B + NOT_IMPLICIT
+        add_base_pins = []
+        for arg in self.args:
+            if arg.gate == 'not' and not arg.is_base_pin:
+                if self.implicit == 0:
+                    self.implicit = 1
+                    arg_base_pins = arg.get_base_pins()
+
+                    for base_pin in arg_base_pins:
+                        add_base_pins.append(base_pin)
+
+        for base_pin in add_base_pins:
+            not_base_pin = GateBranch(self.map, 'not')
+            not_base_pin.add(base_pin)
+            self.add(not_base_pin)
+
         # Notes:
         # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
-        # !(A*B) => !A + !B + NOT_IMPLICIT
         args_in_ports = self.calculate_args_in_ports()
         print("check")
 
