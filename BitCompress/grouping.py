@@ -27,13 +27,13 @@ class GroupsSeeker():
     def __init__(self, gates_by_ports):
         self.gates_by_ports = gates_by_ports
 
-        self.combs = {0: [CombinationGroup(self.gates_by_ports)]}
-        self.max_gain = 0
+        self.combs = {999994: [CombinationGroup(self.gates_by_ports)]}
+        self.min_cycles = 999994
         self.best_comb = None
 
     def check(self, port):
         combs_items = self.combs.items()
-        combs_items = sorted(combs_items, key=lambda x: x[0], reverse=True)
+        combs_items = sorted(combs_items, key=lambda x: x[0])
 
         max_checks = len(combs_items) // 2
         checks = 0
@@ -44,29 +44,76 @@ class GroupsSeeker():
                 comb.check(port)
 
                 gain = comb.get_gain()
-                if gain > combs_gain:
+                if gain < combs_gain:
                     if gain not in self.combs:
                         self.combs[gain] = []
                     self.combs[gain].append(comb)
 
-                    if gain > self.max_gain:
-                        self.max_gain = gain
+                    if gain < self.min_cycles:
+                        self.min_cycles = gain
                         self.best_comb = comb
                 else:
                     comb.discard()
 
             checks += 1
-            if checks > max_checks: # max checks
+            if checks > max_checks and False: # max checks
                 break
 
     def best_combinations(self):
-        combs = [self.best_comb]
-        #todo
-        return combs
+        combs_by_cyles = {}
+        combs = []
+
+        def check_comb(comb):
+            cycles = comb.calc_gain()
+            if cycles not in combs_by_cyles:
+                combs_by_cyles[cycles] = []
+            combs_by_cyles[cycles].append(comb)
+            combs.append(comb)
+
+        combs_items = sorted(self.combs.items(), key=lambda x: x[0])
+        for cycles, groups in combs_items:
+            for group in groups:
+                basic = CombinationGroups()
+                basic.add(group)
+
+                for comb in combs:
+                    fork = comb.fork()
+                    fork.add(group)
+
+                    if fork.calc_gain() < cycles:
+                        check_comb(fork)
+
+                check_comb(basic)
+
+        combs_items = sorted(self.combs.items(), key=lambda x: x[0])
+
+        if len(combs_items) > 0:
+            return combs_items[1][0] # for the moment, take arbitrary the first element
+
+        return []
 
 class CombinationGroups: # a confusing name for a confusing file
     def __init__(self):
         self.groups = []
+        self.gain = 0
+
+    def hash(self):
+        h = ''
+        for group in self.groups:
+            h += " ".join(group.ports)+'+'
+        return h
+
+    def add(self, group):
+        self.groups.append(group)
+
+        if len(self.groups) > 1:
+            self.gain = self.calc_gain()
+
+    def fork(self):
+        new_comb = CombinationGroups()
+        new_comb.groups = self.groups
+        new_comb.gain = self.gain
+        return new_comb
 
     def calc_gain(self):
         gates = []
