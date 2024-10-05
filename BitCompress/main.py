@@ -58,11 +58,11 @@ hideUnusedImplicitPins = True
 addImplicitNotPortOnBrothers = False
 
 class GateBranch:
-    def __init__(self, map, gate, value=-1):
+    def __init__(self, map, gate, value=-1, is_basic = True):
         self.map: BitsMap = map
 
         self.gate = gate
-        self.iGate = gates.index(gate)
+        self.i_gate = gates.index(gate)
         self.value = value
         self.args: [GateBranch] = []
 
@@ -72,8 +72,12 @@ class GateBranch:
         self.down_complexity = -1
         self.up_complexity = -1
         self.is_base_pin = True # if contains only elementary pins (or not pins)
-        self.is_basic = True # is basic table definition gate
+        self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
+        self.implicit = 0 # 0 => no implicit, 1 => normal implicit (negate rest), 2 => not implicit (or rest)
+
+        if self.is_basic and self.i_gate > 1:
+            self.implicit = 1 if gate == 'and' else 2
 
         # 50 shades of ports
         self.ports = [] if gate != 'pin' else [value]
@@ -129,7 +133,7 @@ class GateBranch:
         self.usage += 1
 
     def get_port(self):
-        if not self.is_base_pin or self.iGate > 1:
+        if not self.is_base_pin or self.i_gate > 1:
             return -1
 
         if self.gate == 'not':
@@ -190,7 +194,8 @@ class GateBranch:
     def optimize_or(self):
         # Notes:
         # (A*B)+(A*!B) => (A*B)+A => A
-        # (A*B)+ !(A) => B => !(A)
+        # (A*B)+ !(A) => B => !(A) (NOPE)
+        # !(A*B) => !A + !B + REST
         args_in_ports = self.calculate_args_in_ports()
         print("check")
 
@@ -298,7 +303,7 @@ class GateBranch:
         if self.last_hash is not None:
             return self.last_hash
 
-        hash = str(self.iGate)
+        hash = str(self.i_gate)
 
         if self.value >= 0:
             hash += ':' + str(self.value)
