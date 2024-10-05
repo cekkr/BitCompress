@@ -103,8 +103,6 @@ class GateBranch:
             self.max_port = value
             self.involved_ports[value] = 1
 
-        self.implicit_brothers = []
-
         # Cache
         self.last_hash = None
 
@@ -349,32 +347,6 @@ class GateBranch:
 
         self.propagate_update()
 
-        '''
-        if addImplicitNotPortOnBrothers: #todo: move in an apart function
-            if self.status_base and self.gate == 'and':
-                # Verify the validity of implicit brothers
-                toRemove = []
-                for bro in self.implicit_brothers:
-                    if bro.status_base != self.status_base:
-                        toRemove.append(bro)
-                    else:
-                        implicitPorts = bro.add_implicit_port_upTo(self.max_port)
-                        if bro.get_hash() != curHash:
-                            toRemove.append(bro)
-
-                            if hideUnusedImplicitPins:
-                                # Remove again forced implicit ports
-                                for iport in implicitPorts:
-                                    bro.remove(iport)
-
-                for rem in toRemove:
-                    self.implicit_brothers.remove(rem)
-
-                # Look for implicit brothers
-                if curHash in self.map.gates:
-                    self.implicit_brothers.append(self.map.gates[curHash])
-        '''
-
     def destroy(self, replace_with=None):
         for child in self.children:
             if replace_with is not None:
@@ -391,16 +363,6 @@ class GateBranch:
             hash = self.get_hash()
             if hash in self.map.gates:
                 del self.map.gates[hash]
-
-    def optimize(self):
-        #todo: self.implicit_brothers currently not used
-        for implicit_bro in self.implicit_brothers:
-            implicit_bro.destroy(replace_with=self)
-
-        if len(self.implicit_brothers) > 0:
-            self.propagate_update()
-
-        self.implicit_brothers.clear()
 
     def propagate_update(self):
         prevHash = None
@@ -428,8 +390,11 @@ class GateBranch:
 
         hash = ''
 
-        if self.implicit_not:
-            hash += '!'
+        if self.implicit:
+            if self.implicit_not:
+                hash += '!'
+            else:
+                hash += '&'
 
         hash += str(self.i_gate)
 
@@ -474,15 +439,13 @@ class BitsMap:
         for pin in self.pins:
             pin.calc_complexity()
 
-        print("check")
-
     def check_gate(self, gate) -> GateBranch:
         hash = gate.get_hash()
         if hash in self.gates:
             return self.gates[hash]
         else:
             self.gates[hash] = gate
-            gate.optimize() if not disableCheckGateOptimize else None
+            #gate.optimize() if not disableCheckGateOptimize else None
             return gate
 
     def set(self, series, bit):
@@ -512,9 +475,7 @@ class BitsMap:
 
             andGate.add(gate)
 
-        if len(andGate.args) == 0:
-            return
-
+        andGate.implicit = True
         andGate.implicit_not = True
         andGate = self.check_gate(andGate)
         andGate.increment_usage()
@@ -529,13 +490,13 @@ if False:
     map.set([0, 1], 1)
     map.set([1, 1], 0)
 
-if False:
+if True:
     map.set([0], 1)
     map.set([1],0)
     map.set([0, 1], 0)
     map.set([1, 1], 1)
 
-if True: # unneeded pin example
+if False: # unneeded pin example
     map.set([0], 1)
     map.set([1], 0)
     map.set([0, 1], 1)
