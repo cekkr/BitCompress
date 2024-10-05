@@ -67,7 +67,7 @@ def get_not_pins(pins):
 
 #########################################################
 
-gates = ['pin', 'not', 'and', 'or']
+gates = ['pin', 'not', 'and', 'or', 'xor']
 #enumerateGates = enumerate(gates)
 
 debugHash = True
@@ -255,6 +255,12 @@ class GateBranch:
             arg.check_if_used()
 
     def add(self, arg, at=-1, in_process=False):
+
+        # Prevent duplicate
+        arg_hash = arg.get_hash()
+        for a in self.args:
+            if arg_hash == a.get_hash():
+                return
 
         if arg.is_base_pin:
             if arg.max_port > self.max_port:
