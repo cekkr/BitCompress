@@ -269,6 +269,12 @@ class GateBranch:
         if self.implicit == 0:
             for arg in self.args:
                 if arg.gate == 'not' and not arg.is_base_pin:
+                    arg_and = arg.args[0]
+
+                    if arg_and.gate != 'and':
+                        print("This could be weird (65476467)")
+                        continue
+
                     arg_base_pins = arg.get_base_pins()
 
                     for base_pin in arg_base_pins:
@@ -292,14 +298,14 @@ class GateBranch:
                         print("This could be weird (3294538)")
                         continue
 
-                    arg_and = arg.get_base_pins()
-                    for arg_base_pin in arg_and:
+                    arg_base_pins = arg_and.get_base_pins()
+                    for arg_base_pin in arg_base_pins:
                         if arg_base_pin not in base_pins_not:
                             self.set_always_true()
                             return
 
                     for base_pin in base_pins_not:
-                        if base_pin not in arg_and:
+                        if base_pin not in arg_base_pins:
                             self.set_always_true()
                             return
 
