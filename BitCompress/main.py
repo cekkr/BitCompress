@@ -194,7 +194,7 @@ class GateBranch:
                 self.ports.remove(port)
 
     def optimize_or(self):
-        # First of all, void opposite gates
+        # First of all, void opposite gates (and duplicates)
         hashes_one = {}
         hashes_zero = {}
         to_remove = []
