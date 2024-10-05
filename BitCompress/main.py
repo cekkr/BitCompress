@@ -72,6 +72,11 @@ def sort_dict_by_length(dict):
 
     return sorted(length.items(), key=lambda x: x[1])
 
+def calculate_ports_groups(gates_by_ports):
+    groups = {}
+    ports_sorted = sort_dict_by_length(gates_by_ports)
+    return groups
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -259,7 +264,7 @@ class GateBranch:
         # (!A*!B)+(!A*B)+(A*!B) => !(A*B)   AND!()+AND!(A)+AND!(B)
         # (!A*B)+(A*!B) => XOR(A,B)         AND!(B)+AND!(A)
         args_in_ports = self.calculate_args_in_ports()
-        ports_sorted = sort_dict_by_length(args_in_ports)
+        ports_groups = calculate_ports_groups(args_in_ports)
 
         print("check")
 
