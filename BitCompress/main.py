@@ -254,7 +254,7 @@ class GateBranch:
         args_in_ports = self.calculate_args_in_ports()
         ports_groups = calculate_ports_groups(args_in_ports)
 
-        if ports_groups is not None:
+        if len(ports_groups) > 0:
             pass #todo: handle discovered groups
 
         print("check")
