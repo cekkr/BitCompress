@@ -194,8 +194,36 @@ class GateBranch:
                 self.ports.remove(port)
 
     def optimize_or(self):
+        # First of all, void opposite gates
+        hashes_one = {}
+        hashes_zero = {}
+        to_remove = []
+
+        for arg in self.args:
+            hashes = hashes_one
+            opposite_hashes = hashes_zero
+
+            if arg.gate == 'not':
+                hashes = hashes_zero
+                opposite_hashes = hashes_one
+                hash = arg.args[0].get_hash()
+            else:
+                hash = arg.get_hash()
+
+            if hash in hashes:
+                to_remove.append(arg)
+            else:
+                if hash in opposite_hashes:
+                    to_remove.append(arg)
+                    to_remove.append(opposite_hashes[hash])
+                else:
+                    hashes[hash] = arg
+
+        for rem in to_remove:
+            self.args.remove(rem)
+
         # Notes:
-        # (A*B)+(A*!B) => (A*B)+A => A (impossible condition in basic state)
+        # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
         # !(A*B) => !A + !B + NOT_IMPLICIT
         args_in_ports = self.calculate_args_in_ports()
         print("check")
