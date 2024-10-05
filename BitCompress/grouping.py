@@ -21,7 +21,7 @@ def calculate_ports_groups(gates_by_ports):
         for port in ports:
             seeker.check(port)
 
-    return seeker.best_comb
+    return seeker.best_combinations()
 
 class GroupsSeeker():
     def __init__(self, gates_by_ports):
@@ -58,6 +58,11 @@ class GroupsSeeker():
             checks += 1
             if checks > max_checks: # max checks
                 break
+
+    def best_combinations(self):
+        combs = [self.best_comb]
+        #todo
+        return combs
 
 class CombinationGroups:
     def __init__(self, gates_by_ports, parent=None):
