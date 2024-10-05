@@ -195,8 +195,7 @@ class GateBranch:
 
     def optimize_or(self):
         # Notes:
-        # (A*B)+(A*!B) => (A*B)+A => A
-        # (A*B)+ !(A) => B => !(A) (NOPE)
+        # (A*B)+(A*!B) => (A*B)+A => A (impossible condition in basic state)
         # !(A*B) => !A + !B + NOT_IMPLICIT
         args_in_ports = self.calculate_args_in_ports()
         print("check")
