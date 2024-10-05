@@ -247,10 +247,10 @@ class GateBranch:
         # Snippet #1
 
         # Notes:
-        # (A*B)+(A*!B) => (A*B)+A => A      AND!(A,B)+AND!(A)
-        # (A*B)+(!A*!B) => !XOR(A,B)        AND!(A,B)+AND!()
-        # (!A*!B)+(!A*B)+(A*!B) => !(A*B)   AND!()+AND!(A)+AND!(B)
-        # (!A*B)+(A*!B) => XOR(A,B)         AND!(B)+AND!(A)
+        # (A*B)+(A*!B) => AND!(A,B)+AND!(A) => AND!(AND(A))             AND!(A,B)+AND!(A) => B exclusion 
+        # (A*B)+(!A*!B) => !XOR(A,B)                                    AND!(A,B)+AND!()
+        # (!A*!B)+(!A*B)+(A*!B) => NOT!(AND(A,B))                       AND!()+AND!(A)+AND!(B)
+        # (!A*B)+(A*!B) => XOR(A,B)                                     OR!(AND!(B),AND!(A))
         args_in_ports = self.calculate_args_in_ports()
         ports_groups = calculate_ports_groups(args_in_ports)
 
