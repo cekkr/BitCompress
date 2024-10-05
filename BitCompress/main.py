@@ -50,6 +50,23 @@ def float_to_bits(f, size=32):
 #########################################################
 #########################################################
 
+# Generic functions
+def gates_pins_to_indexes(pins):
+    indexes = []
+    for pin in pins:
+        if pin.is_base_pin:
+            indexes.append(pin.get_port())
+    return indexes
+
+def get_not_pins(pins):
+    nots = []
+    for pin in pins:
+        if pin.gate == 'not' and pin.is_base_pin:
+            nots.append(pin.args[0])
+    return nots
+
+#########################################################
+
 gates = ['pin', 'not', 'and', 'or']
 #enumerateGates = enumerate(gates)
 
@@ -74,7 +91,7 @@ class GateBranch:
         self.is_base_pin = True # if contains only elementary pins (or not pins)
         self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
-        self.implicit = 1 if self.is_basic and self.i_gate > 1 else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
+        self.implicit = 1 if self.is_basic and self.gate == 'and' else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
 
         # 50 shades of ports
         self.ports = [] if gate != 'pin' else [value]
@@ -130,6 +147,7 @@ class GateBranch:
         self.usage += 1
 
     def get_base_pins(self):
+        #todo: cache into self.ports
         if self.is_base_pin:
             return [self.get_port()]
 
@@ -142,6 +160,13 @@ class GateBranch:
                 base_pins.append(arg)
 
         return base_pins
+
+    def get_base_pin(self, index):
+        for arg in self.args:
+            if arg.is_base_pin and arg.get_port() == index:
+                return arg
+
+        return None
 
     def get_port(self):
         if not self.is_base_pin or self.i_gate > 1:
@@ -249,7 +274,8 @@ class GateBranch:
                     for base_pin in arg_base_pins:
                         not_base_pin = GateBranch(self.map, 'not')
                         not_base_pin.add(base_pin)
-                        self.add(not_base_pin)
+                        not_base_pin = self.map.check_gate(not_base_pin)
+                        self.add(not_base_pin, in_process=True)
 
                     self.implicit = 1
                     self.remove(arg)
@@ -257,21 +283,23 @@ class GateBranch:
 
         if self.implicit == 1:
             base_pins = self.get_base_pins()
+            base_pins_not = get_not_pins(base_pins)
             for arg in self.args:
-                if arg.gate == 'not' and not arg.is_base_pin and arg.is_basic:
-                    arg_base_pins = arg.get_base_pins()
+                if arg.gate == 'not' and not arg.is_base_pin: # and arg.is_basic
+                    arg_and = arg.args[0]
 
-                    if len(arg_base_pins) != len(base_pins):
-                        self.set_always_true()
-                        return
+                    if arg_and.gate != 'and':
+                        print("This could be weird (3294538)")
+                        continue
 
-                    for arg_base_pin in arg_base_pins:
-                        if arg_base_pin not in base_pins:
+                    arg_and = arg.get_base_pins()
+                    for arg_base_pin in arg_and:
+                        if arg_base_pin not in base_pins_not:
                             self.set_always_true()
                             return
 
-                    for base_pin in base_pins:
-                        if base_pin not in arg_base_pins:
+                    for base_pin in base_pins_not:
+                        if base_pin not in arg_and:
                             self.set_always_true()
                             return
 
@@ -290,7 +318,7 @@ class GateBranch:
             self.remove_involved_ports(arg.involved_ports)
             arg.check_if_used()
 
-    def add(self, arg, at=-1):
+    def add(self, arg, at=-1, in_process=False):
 
         if arg.is_base_pin:
             if arg.max_port > self.max_port:
@@ -298,8 +326,8 @@ class GateBranch:
 
         self.add_involved_ports(arg.involved_ports)
 
-        if self.gate == 'not' and arg.is_base_pin:
-            self.is_base_pin = True
+        if self.i_gate > 1 or (self.gate == 'not' and not arg.is_base_pin):
+            self.is_base_pin = False
 
         arg.children.append(self)
 
@@ -308,7 +336,7 @@ class GateBranch:
         else:
             self.args.insert(at, arg)
 
-        if self.gate == 'or': # remove redundancies in OR
+        if not in_process: # remove redundancies in OR
             self.optimize_or()
 
         self.propagate_update()
