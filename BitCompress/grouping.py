@@ -68,6 +68,47 @@ class CombinationGroups: # a confusing name for a confusing file
     def __init__(self):
         self.groups = []
 
+    def calc_gain(self):
+        gates = []
+        hash_gate = {}
+        gate_repeat = {}
+        gates_group = {}
+        gain = 0
+        for group in self.groups:
+            gain += group.get_gain()
+            for gate in group.gates:
+                if gate not in gates:
+                    gates.append(gate)
+
+                ghash = gate.get_hash()
+
+                if ghash not in gate_repeat:
+                    gate_repeat[ghash] = 0
+                gate_repeat[ghash] += 1
+
+                if ghash not in gates_group:
+                    gates_group[ghash] = []
+                gates_group[ghash].append(group)
+
+                hash_gate[ghash] = gate
+
+        for ghash, groups in gates_group.items():
+            gate = hash_gate[ghash]
+
+            tot_ops = len(groups)
+            tot_ports = []
+            repeated = 0
+            for group in groups:
+                for port in group.ports:
+                    if port not in tot_ports:
+                        tot_ports.append(port)
+                    else:
+                        repeated += 1
+
+
+
+        return gain
+
 class CombinationGroup:
     def __init__(self, gates_by_ports, parent=None):
         self.parent = parent
@@ -77,43 +118,37 @@ class CombinationGroup:
         self.gates = []
         self.sub_combs = []
 
-        self.gain = 0
-
     def discard(self):
         if self.parent is not None:
             self.parent.sub_combs.remove(self)
 
     def get_gain(self):
-        return (len(self.gates)*len(self.ports)) - len(self.gates)
+        num_ports = len(self.ports)
+        needed_cycles = 0
+
+        for gate in self.gates:
+            ports = gate.get_base_pins()
+            needed_cycles += len(ports) - num_ports
+
+        return needed_cycles + num_ports
 
     def fork(self):
         comb = CombinationGroup(self.gates_by_ports)
         comb.gates = self.gates
-        comb.gain = self.gain
+        comb.ports = self.ports
 
         self.sub_combs.append(comb)
         return comb
 
     def include_gates(self, port):
-        if port in self.ports:
-            return
 
-        for gate in self.gates_by_ports[port]:
-            if gate not in self.gates:
-                self.gates.append(gate)
-                self.gain += 1
-
-    def check_include(self, port):
-        num_gates = self.gain
-
-        if port in self.ports:
-            return num_gates
-
-        for gate in self.gates_by_ports[port]:
-            if gate not in self.gates:
-                num_gates += 1
-
-        return num_gates
+        if len(self.gates) == 0:
+            self.gates = self.gates_by_ports[port]
+        else:
+            remove = []
+            for gate in self.gates:
+                if port not in gate.ports:
+                    remove.append(gate)
 
     def check(self, port):
         include = False
