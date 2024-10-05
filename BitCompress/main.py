@@ -92,7 +92,7 @@ class GateBranch:
         self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
         self.implicit = 1 if self.is_basic and self.gate == 'and' else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
-        self.implicit_not = False
+        self.implicit_not = False #todo: Implement it (?)
 
         # 50 shades of ports
         self.ports = [] if gate != 'pin' else [value]
@@ -236,81 +236,80 @@ class GateBranch:
         if self.gate != 'or':
             return
 
-        # First of all, check opposite gates (and duplicates)
-        hashes_one = {}
-        hashes_zero = {}
-        to_remove = []
+        if False: # this implementation has no more sense with 0 bits ignoring
+            # First of all, check opposite gates (and duplicates)
+            hashes_one = {}
+            hashes_zero = {}
+            to_remove = []
 
-        for arg in self.args:
-            hashes = hashes_one
-            opposite_hashes = hashes_zero
+            for arg in self.args:
+                hashes = hashes_one
+                opposite_hashes = hashes_zero
 
-            if arg.gate == 'not':
-                hashes = hashes_zero
-                opposite_hashes = hashes_one
-                hash = arg.args[0].get_hash()
-            else:
-                hash = arg.get_hash()
-
-            if hash in hashes:
-                to_remove.append(arg)
-            else:
-                if hash in opposite_hashes:
-                    # OR of opposite pins is always true
-                    self.set_always_true()
-                    return
+                if arg.gate == 'not':
+                    hashes = hashes_zero
+                    opposite_hashes = hashes_one
+                    hash = arg.args[0].get_hash()
                 else:
-                    hashes[hash] = arg
+                    hash = arg.get_hash()
 
-        for rem in to_remove:
-            self.args.remove(rem)
+                if hash in hashes:
+                    to_remove.append(arg)
+                else:
+                    if hash in opposite_hashes:
+                        # OR of opposite pins is always true
+                        self.set_always_true()
+                        return
+                    else:
+                        hashes[hash] = arg
 
-        # Convert NOT AND to OR NOTS
-        # !(A*B) => !A + !B + NOT_IMPLICIT
-        if self.implicit == 0:
-            for arg in self.args:
-                if arg.gate == 'not' and not arg.is_base_pin:
-                    arg_and = arg.args[0]
+            for rem in to_remove:
+                self.args.remove(rem)
 
-                    if arg_and.gate != 'and':
-                        print("This could be weird (65476467)")
-                        continue
+            # Convert NOT AND to OR NOTS
+            # !(A*B) => !A + !B + NOT_IMPLICIT
+            if self.implicit == 0:
+                for arg in self.args:
+                    if arg.gate == 'not' and not arg.is_base_pin:
+                        arg_and = arg.args[0]
 
-                    arg_base_pins = arg.get_base_pins()
+                        if arg_and.gate != 'and':
+                            print("This could be weird (65476467)")
+                            continue
 
-                    for base_pin in arg_base_pins:
-                        not_base_pin = GateBranch(self.map, 'not')
-                        not_base_pin.add(base_pin)
-                        not_base_pin = self.map.check_gate(not_base_pin)
-                        self.add(not_base_pin, in_process=True)
+                        arg_base_pins = arg.get_base_pins()
 
-                    self.implicit = 1
-                    self.remove(arg)
-                    break
+                        for base_pin in arg_base_pins:
+                            not_base_pin = GateBranch(self.map, 'not')
+                            not_base_pin.add(base_pin)
+                            not_base_pin = self.map.check_gate(not_base_pin)
+                            self.add(not_base_pin, in_process=True)
 
-        if self.implicit == 1:
-            base_pins = self.get_base_pins()
-            base_pins_not = get_not_pins(base_pins)
-            for arg in self.args:
-                if arg.gate == 'not' and not arg.is_base_pin: # and arg.is_basic
-                    arg_and = arg.args[0]
+                        self.implicit = 1
+                        self.remove(arg)
+                        break
 
-                    if arg_and.gate != 'and':
-                        print("This could be weird (3294538)")
-                        continue
+            if self.implicit == 1:
+                base_pins = self.get_base_pins()
+                base_pins_not = get_not_pins(base_pins)
+                for arg in self.args:
+                    if arg.gate == 'not' and not arg.is_base_pin: # and arg.is_basic
+                        arg_and = arg.args[0]
 
-                    arg_base_pins = arg_and.get_base_pins()
-                    for arg_base_pin in arg_base_pins:
-                        if arg_base_pin not in base_pins_not:
-                            self.set_always_true()
-                            return
+                        if arg_and.gate != 'and':
+                            print("This could be weird (3294538)")
+                            continue
 
-                    for base_pin in base_pins_not:
-                        if base_pin not in arg_base_pins:
-                            self.set_always_true()
-                            return
+                        arg_base_pins = arg_and.get_base_pins()
+                        for arg_base_pin in arg_base_pins:
+                            if arg_base_pin not in base_pins_not:
+                                self.set_always_true()
+                                return
 
-                    print("succes")
+                        for base_pin in base_pins_not:
+                            if base_pin not in arg_base_pins:
+                                self.set_always_true()
+                                return
 
         # Notes:
         # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
@@ -463,6 +462,7 @@ class GateBranch:
 
 disableCheckGateOptimize = False
 ignoreNotPin = True
+ignoreNotBit = True
 
 class BitsMap:
     def __init__(self):
@@ -486,6 +486,9 @@ class BitsMap:
             return gate
 
     def set(self, series, bit):
+        if ignoreNotBit and bit == 0:
+            return
+
         andGate = GateBranch(self, 'and')
 
         for i in range(0, len(series)):
@@ -517,17 +520,6 @@ class BitsMap:
         andGate.increment_usage()
 
         self.map.add(andGate)
-
-        '''
-        if bit == 0:
-            notAndGate = GateBranch(self, 'not') #todo: REMEMBER: THIS IS AN IMPLICIT WRAPPER
-            notAndGate.add(andGate)
-            notAndGate = self.check_gate(notAndGate)
-            notAndGate.increment_usage()
-            self.map.add(notAndGate)
-        else:
-            self.map.add(andGate)
-        '''
 
 map = BitsMap()
 
