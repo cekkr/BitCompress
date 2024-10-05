@@ -254,6 +254,9 @@ class GateBranch:
         args_in_ports = self.calculate_args_in_ports()
         ports_groups = calculate_ports_groups(args_in_ports)
 
+        if ports_groups is not None:
+            pass #todo: handle discovered groups
+
         print("check")
 
     def remove(self, arg):
