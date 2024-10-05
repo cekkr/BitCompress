@@ -53,8 +53,6 @@ def float_to_bits(f, size=32):
 gates = ['pin', 'not', 'and', 'or']
 #enumerateGates = enumerate(gates)
 
-enum_implicit = ['no', 'implicit', 'not_implicit']
-
 debugHash = True
 hideUnusedImplicitPins = True
 addImplicitNotPortOnBrothers = False
@@ -76,10 +74,7 @@ class GateBranch:
         self.is_base_pin = True # if contains only elementary pins (or not pins)
         self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
-        self.implicit = 0 # 0 => no implicit, 1 => normal implicit (negate rest), 2 => not implicit (or rest)
-
-        if self.is_basic and self.i_gate > 1:
-            self.implicit = 1 if gate == 'and' else 2
+        self.implicit = 1 if self.is_basic and self.i_gate > 1 else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
 
         # 50 shades of ports
         self.ports = [] if gate != 'pin' else [value]
