@@ -234,7 +234,8 @@ class GateBranch:
         if self.gate != 'or':
             return
 
-        if False: # this implementation has no more sense with 0 bits ignoring
+        # AND opposites management
+        if False: # this implementation has no more sense if ignoring 0 bits
             # First of all, check opposite gates (and duplicates)
             hashes_one = {}
             hashes_zero = {}
@@ -310,7 +311,10 @@ class GateBranch:
                                 return
 
         # Notes:
-        # (A*B)+(A*!B) => [basic_state] (A*B)+A => A
+        # (A*B)+(A*!B) => (A*B)+A => A      AND!(A,B)+AND!(A)
+        # (A*B)+(!A*!B) => !XOR(A,B)        AND!(A,B)+AND!()
+        # (!A*!B)+(!A*B)+(A*!B) => !(A*B)   AND!()+AND!(A)+AND!(B)
+        # (!A*B)+(A*!B) => XOR(A,B)         AND!(B)+AND!(A)
         args_in_ports = self.calculate_args_in_ports()
 
 
@@ -485,13 +489,13 @@ class BitsMap:
 
 map = BitsMap()
 
-if False:
+if True:
     map.set([0], 1)
     map.set([1], 1)
     map.set([0, 1], 1)
     map.set([1, 1], 0)
 
-if True:
+if False:
     map.set([0], 1)
     map.set([1],0)
     map.set([0, 1], 0)
