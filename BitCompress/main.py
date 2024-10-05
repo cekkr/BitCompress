@@ -390,13 +390,13 @@ class GateBranch:
 
         hash = ''
 
+        hash += str(self.i_gate)
+
         if self.implicit:
             if self.implicit_not:
                 hash += '!'
             else:
                 hash += '&'
-
-        hash += str(self.i_gate)
 
         if self.value >= 0:
             hash += ':' + str(self.value)
@@ -454,6 +454,9 @@ class BitsMap:
 
         andGate = GateBranch(self, 'and')
 
+        andGate.implicit = True
+        andGate.implicit_not = True if bit == 1 else False
+
         for i in range(0, len(series)):
             if len(self.pins) <= i:
                 pin = GateBranch(self, 'pin', i)
@@ -475,8 +478,6 @@ class BitsMap:
 
             andGate.add(gate)
 
-        andGate.implicit = True
-        andGate.implicit_not = True
         andGate = self.check_gate(andGate)
         andGate.increment_usage()
 
