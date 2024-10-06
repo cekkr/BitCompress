@@ -337,6 +337,9 @@ class GateBranch:
             for rem in to_remove:
                 group.remove(rem)
 
+        if emptyGate and len(full_gates) > 0: # it's always true
+            return self.set_always_true()
+
         if len(group) > 0:
             self.remove_ports(group)
 
