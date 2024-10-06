@@ -304,27 +304,38 @@ class GateBranch:
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
         # Or more generically AND!(A,B) as (A*B)+A+B
         emptyGate = self.get_empty_gate()
+        full_gates = [] # aims to have the gates that uses every port in the group
+
         connections = {}
         for port, args in args_in_ports.items():
             connections[port] = []
             for arg in self.args:
+                full_gates.append(arg)
                 for subport in arg.ports:
                     if subport not in connections:
                         connections[port].append(subport)
 
         group = list(connections.keys())
         for port, conn in connections.items():
+            to_remove = []
+            for gate in full_gates:
+                if port not in gate.port:
+                    to_remove.append(gate)
+
+            for rem in to_remove:
+                full_gates.remove(rem)
+
             included = [port]
             for connPort in conn:
                 included.append(connPort)
 
-            rem = []
+            to_remove = []
             for groupPort in group:
                 if groupPort not in included:
-                    rem.append(groupPort)
+                    to_remove.append(groupPort)
 
-            for remPort in rem:
-                group.remove(remPort)
+            for rem in to_remove:
+                group.remove(rem)
 
         if len(group) > 0:
             self.remove_ports(group)
