@@ -380,6 +380,12 @@ class GateBranch:
             main_arg = arg1 if port in arg1.ports else arg2
             self.remove(main_arg)
 
+        # Look for XOR
+        # (A*B)+(!A*!B) => !XOR(A,B) => AND!(A,B)+AND()
+        # (!A*B)+(A*!B) => XOR(A,B) => AND!(A)+AND(B)
+        # Simple and superficial implementation
+
+
         print("check")
 
     def remove(self, arg, as_duplicate=False):
