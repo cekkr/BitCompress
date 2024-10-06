@@ -253,6 +253,22 @@ class GateBranch:
         print("OR always true")
         pass #todo: ok, this gate is always true
 
+    def group_ports(self, ports):
+        # Remove the ports from the args
+        toRemove = []
+        for arg in self.args:
+            if arg.is_base_pin and arg.get_port() in ports:
+                toRemove.append(arg)
+            else:
+                arg.group_ports(ports)
+
+        toUpdate = len(toRemove) > 0
+        for rem in toRemove:
+            self.args.remove(rem)
+
+        if toUpdate:
+            self.propagate_update()
+
     def optimize_or(self):
         if self.gate != 'or':
             return
