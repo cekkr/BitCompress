@@ -301,9 +301,10 @@ class GateBranch:
         if len(ports_groups) > 0:
             print("todo: handle grouping") #todo: handle discovered groups
 
+        empty_gate = self.get_empty_gate()
+
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
         # Or more generically AND!(A,B) as (A*B)+A+B
-        emptyGate = self.get_empty_gate()
         full_gates = [] # aims to have the gates that uses every port in the group
 
         connections = {}
@@ -337,7 +338,7 @@ class GateBranch:
             for rem in to_remove:
                 group.remove(rem)
 
-        if emptyGate and len(full_gates) > 0: # it's always true
+        if empty_gate is not None and len(full_gates) > 0: # it's always true
             return self.set_always_true()
 
         if len(group) > 0:
@@ -348,7 +349,7 @@ class GateBranch:
             for port in group:
                 andGate.add_port(port)
 
-            if emptyGate is None: # is NOT AND
+            if empty_gate is None: # is NOT AND
                 notGate = GateBranch(self.map, 'not')
                 notGate.add(andGate)
                 andGate = notGate
@@ -356,6 +357,11 @@ class GateBranch:
             andGate = self.map.check_gate(andGate)
             self.add(andGate)
 
+        # Check for exclusion
+        # (A*B)+(A) => !(A)
+        # not for: (A*B)+(A*C)
+        for port, args in args_in_ports.items():
+            pass
 
         print("check")
 
