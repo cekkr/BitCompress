@@ -253,14 +253,14 @@ class GateBranch:
         print("OR always true")
         pass #todo: ok, this gate is always true
 
-    def group_ports(self, ports):
-        # Remove the ports from the args
+    def remove_ports(self, ports):
+        # Remove the ports from the args (for port grouping or simplifications)
         toRemove = []
         for arg in self.args:
             if arg.is_base_pin and arg.get_port() in ports:
                 toRemove.append(arg)
             else:
-                arg.group_ports(ports)
+                arg.remove_ports(ports)
 
         toUpdate = len(toRemove) > 0
         for rem in toRemove:
@@ -268,6 +268,20 @@ class GateBranch:
 
         if toUpdate:
             self.propagate_update()
+
+    def remove_duplicate_args(self):
+        hashes = []
+        to_remove = []
+
+        for arg in self.args:
+            arg_hash = arg.get_hash()
+            if arg_hash in hashes:
+                to_remove.append(arg)
+            else:
+                hashes.append(arg_hash)
+
+        for rem in to_remove:
+            self.remove(rem, as_duplicate=True)
 
     def optimize_or(self):
         if self.gate != 'or':
@@ -313,24 +327,39 @@ class GateBranch:
                 group.remove(remPort)
 
         if len(group) > 0:
-            if emptyGate is None: # check for normal AND
-                #todo: the AND group are the ports in the list
-                pass
-            else: # check for NOT AND
-                # todo: the not AND group are the ports in the list
-                pass
+            self.remove_ports(group)
+
+            andGate = GateBranch(self.map, 'and')
+
+            for port in group:
+                andGate.add_port(port)
+
+            if emptyGate is None: # is NOT AND
+                notGate = GateBranch(self.map, 'not')
+                notGate.add(andGate)
+                andGate = notGate
+
+            andGate = self.map.check_gate(andGate)
+            self.add(andGate)
+
 
         print("check")
 
-    def remove(self, arg):
+    def remove(self, arg, as_duplicate=False):
         if arg in self.args:
             self.args.remove(arg)
 
-            if self in arg.children:
-                arg.children.remove(self)
+            if not as_duplicate:
+                if self in arg.children:
+                    arg.children.remove(self)
 
-            self.remove_involved_ports(arg.involved_ports)
-            arg.check_if_used()
+                self.remove_involved_ports(arg.involved_ports)
+                arg.check_if_used()
+
+    def add_port(self, port):
+        pin = GateBranch(self.map, 'pin', port)
+        pin = self.map.check_gate(pin)
+        self.add(pin)
 
     def add(self, arg, at=-1, in_process=False):
 
