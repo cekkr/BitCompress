@@ -282,24 +282,27 @@ class GateBranch:
                     if subport not in connections:
                         connections[port].append(subport)
 
-        if emptyGate is None: # check for normal AND
-            group = list(connections.keys())
-            for port, conn in connections.items():
-                included = [port]
-                for connPort in conn:
-                    included.append(connPort)
+        group = list(connections.keys())
+        for port, conn in connections.items():
+            included = [port]
+            for connPort in conn:
+                included.append(connPort)
 
-                rem = []
-                for groupPort in group:
-                    if groupPort not in included:
-                        rem.append(groupPort)
+            rem = []
+            for groupPort in group:
+                if groupPort not in included:
+                    rem.append(groupPort)
 
-                for remPort in rem:
-                    group.remove(remPort)
+            for remPort in rem:
+                group.remove(remPort)
 
-            #todo: the AND group are the ports in the list
-        else: # check for NOT AND
-            pass
+        if len(group) > 0:
+            if emptyGate is None: # check for normal AND
+                #todo: the AND group are the ports in the list
+                pass
+            else: # check for NOT AND
+                # todo: the not AND group are the ports in the list
+                pass
 
         print("check")
 
