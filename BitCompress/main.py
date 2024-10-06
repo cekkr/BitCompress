@@ -196,6 +196,19 @@ class GateBranch:
 
         return -1
 
+    def get_empty_gate(self):
+        for arg in self.args:
+            if arg.i_gate > 1 and len(arg.args) == 0:
+                return arg
+        return None
+
+    def get_self_gates(self):
+        selfGates = []
+        for arg in self.args:
+            if len(arg.args) == 1:
+                selfGates.append(arg)
+        return selfGates
+
     def add_implicit_port(self, index, update=True):
         notGate = GateBranch(self, 'not')
         notGate.add(self.map.pins[index])
@@ -251,12 +264,42 @@ class GateBranch:
         # (A*B)+(!A*!B) => !XOR(A,B)                                    AND!(A,B)+AND!()
         # (!A*!B)+(!A*B)+(A*!B) => NOT!(AND(A,B))                       AND!()+AND!(A)+AND!(B)
         # (!A*B)+(A*!B) => XOR(A,B)                                     OR!(AND!(B),AND!(A))
-        # AND!()+AND(B)+AND!(A) => NOT(AND(A,B))
+        # AND!()+AND!(B)+AND!(A) => NOT(AND(A,B))
         args_in_ports = self.calculate_args_in_ports()
         ports_groups = calculate_ports_groups(args_in_ports)
 
         if len(ports_groups) > 0:
             print("todo: handle grouping") #todo: handle discovered groups
+
+        # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
+        # Or more generically AND!(A,B) as (A*B)+A+B
+        emptyGate = self.get_empty_gate()
+        connections = {}
+        for port, args in args_in_ports.items():
+            connections[port] = []
+            for arg in self.args:
+                for subport in arg.ports:
+                    if subport not in connections:
+                        connections[port].append(subport)
+
+        if emptyGate is None: # check for normal AND
+            group = list(connections.keys())
+            for port, conn in connections.items():
+                included = [port]
+                for connPort in conn:
+                    included.append(connPort)
+
+                rem = []
+                for groupPort in group:
+                    if groupPort not in included:
+                        rem.append(groupPort)
+
+                for remPort in rem:
+                    group.remove(remPort)
+
+            #todo: the AND group are the ports in the list
+        else: # check for NOT AND
+            pass
 
         print("check")
 
