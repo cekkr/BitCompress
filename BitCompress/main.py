@@ -359,9 +359,26 @@ class GateBranch:
 
         # Check for exclusion
         # (A*B)+(A) => !(A)
-        # not for: (A*B)+(A*C)
+        # not for: (A*B)+(A*C) => A*(B+C)
+        exclude = []
         for port, args in args_in_ports.items():
-            pass
+            common = {}
+            sequences = []
+            for arg in self.args:
+                ports = arg.ports
+                ports.remove(port)
+
+                comb = ''.join(ports)
+                if comb in sequences:
+                    exclude.append([port, common[comb], arg])
+                else:
+                    sequences.append(comb)
+                    common[comb] = arg
+
+        for excl in exclude:
+            port, arg1, arg2 = excl
+            main_arg = arg1 if port in arg1.ports else arg2
+            self.remove(main_arg)
 
         print("check")
 
