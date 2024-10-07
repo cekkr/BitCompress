@@ -295,12 +295,15 @@ class GateBranch:
         # (!A*!B)+(!A*B)+(A*!B) => NOT!(AND(A,B))                       AND!()+AND!(A)+AND!(B) (DONE)
         # (!A*B)+(A*!B) => XOR(A,B)                                     OR!(AND!(B),AND!(A))
         # AND!()+AND!(B)+AND!(A) => NOT(AND(A,B)) (DONE)
+        # NOT(A+B) => NOT(A)+NOT(B) (possible simplification)
+
         args_in_ports = self.calculate_args_in_ports()
         ports_groups = calculate_ports_groups(args_in_ports)
 
         if len(ports_groups) > 0:
             print("todo: handle grouping") #todo: handle discovered groups
 
+        args_in_ports = self.calculate_args_in_ports()
         empty_gate = self.get_empty_gate()
 
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
@@ -360,6 +363,8 @@ class GateBranch:
         # Check for exclusion
         # (A*B)+(A) => !(A)
         # not for: (A*B)+(A*C) => A*(B+C)
+        args_in_ports = self.calculate_args_in_ports()
+
         exclude = []
         for port, args in args_in_ports.items():
             common = {}
@@ -384,7 +389,11 @@ class GateBranch:
         # (A*B)+(!A*!B) => !XOR(A,B) => AND!(A,B)+AND()
         # (!A*B)+(A*!B) => XOR(A,B) => AND!(A)+AND(B)
         # Simple and superficial implementation
+        #args_in_ports = self.calculate_args_in_ports()
+        #empty_gate = self.get_empty_gate() # recalcualtion not needed: it never disappears
 
+        for arg in self.args:
+            pass
 
         print("check")
 
