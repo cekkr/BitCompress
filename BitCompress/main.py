@@ -155,8 +155,11 @@ class GateBranch:
     def get_gates_by_allports(self):
         gates = {}
         for arg in self.args:
-            gates['.'.join(arg.ports)] = arg
+            gates[arg.get_ports_hash()] = arg
         return gates
+
+    def get_ports_hash(self):
+        return '.'.join(self.ports)
 
     def calc_complexity(self, complexity=0):
         # Calculate num involved ports
@@ -493,46 +496,35 @@ class GateBranch:
                 included = []
                 for s in reversed(range(1, size)):
                     num_combs = size if s == size - 1 else summation(size-(s-1)) # check for its correctness
+
+                    size_combs = []
                     for comb_in in combs_by_size[s]:
-                        pass
+                        comb_in_hash = '.'.join(comb_in)
 
-                for comb_hash in combs:
-                    for comb_in in combs_inside:
-                        pass
+                        if comb_in_hash in excluded_combs:
+                            continue
 
-        '''
-        port_not_in = {}
-        for port in self.ports:
-            port_not_in[port] = []
+                        valid_comb_in = True
+                        for comb_in_port in comb_in:
+                            if comb_in_port not in comb:
+                                valid_comb_in = False
+                                break
 
-        gates_by_num_ports = {}
-        for arg in self.args:
-            num = len(arg.ports)
-            if num not in gates_by_num_ports:
-                gates_by_num_ports = []
-            gates_by_num_ports.append(num)
+                        if valid_comb_in:
+                            size_combs.append(comb_in_hash)
 
-        series = []
+                    if len(size_combs) == num_combs:
+                        included.extend(size_combs)
+                    else:
+                        valid = False
+                        break
 
-        for p1 in self.ports:
-            for p2 in self.ports:
-                pass
+                if valid:
+                    xors.append(comb)
+                    excluded_combs.extend(included)
 
-        nums = sorted(list(gates_by_num_ports.keys()), reverse=True)
-        for num in nums:
-            gates = gates_by_num_ports[num]
-            for gate in gates:
-                _ports = gate.ports
-                for i in range(0, len(gate.ports)):
-                    ports = '.'.join(gate.ports)
-
-        for arg in self.args:
-            for port in self.ports:
-                if port not in arg.ports:
-                    port_not_in[port].append(arg)
-
-        #todo: check
-        '''
+        #todo: Sostituisci gli xors ottenuti
+        
 
         print("check")
 
