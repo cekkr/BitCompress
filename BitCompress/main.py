@@ -1,5 +1,6 @@
 import struct
 from grouping import *
+from itertools import combinations
 
 def get_bits(n):
     """
@@ -65,6 +66,22 @@ def get_not_pins(pins):
             nots.append(pin.args[0])
     return nots
 
+def find_combinations (lista):
+  """
+  Questa funzione prende una lista di valori e restituisce tutte le possibili combinazioni di valori.
+
+  Args:
+    lista: Una lista di valori.
+
+  Returns:
+    Una lista di liste, dove ogni sottolista rappresenta una combinazione di valori.
+  """
+  combs = []
+  for i in range(1, len(lista) + 1):
+    for combination in combinations(lista, i):
+      combs.append(list(combination))
+  return combs
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -128,6 +145,12 @@ class GateBranch:
                     args_in_ports[pin_num].append(arg)
 
         return args_in_ports
+
+    def get_gates_by_allports(self):
+        gates = {}
+        for arg in self.args:
+            gates['.'.join(arg.ports)] = arg
+        return gates
 
     def calc_complexity(self, complexity=0):
         # Calculate num involved ports
@@ -408,11 +431,54 @@ class GateBranch:
                 pass
 
         # Advance implementation: XOR
-        args_in_ports = self.calculate_args_in_ports()
+        #args_in_ports = self.calculate_args_in_ports()
+        gates_by_allports = self.get_gates_by_allports()
 
+        combinations = find_combinations(self.ports)
+        to_remove = []
+        for comb in combinations:
+            if gates_by_allports not in '.'.join(comb):
+                to_remove.append(comb)
+
+        for rem in to_remove:
+            combinations.remove(rem)
+
+        combs_inside = {}
+        for comb in combinations:
+            comb_hash = '.'.join(comb)
+            combs_inside[comb_hash] = []
+            for comb_in in combinations:
+                if len(comb_in) < len(comb):
+                    for p in comb_in:
+                        if p not in comb:
+                            break
+                    combs_inside[comb_hash].append(comb_in)
+
+        '''
         port_not_in = {}
         for port in self.ports:
             port_not_in[port] = []
+
+        gates_by_num_ports = {}
+        for arg in self.args:
+            num = len(arg.ports)
+            if num not in gates_by_num_ports:
+                gates_by_num_ports = []
+            gates_by_num_ports.append(num)
+
+        series = []
+
+        for p1 in self.ports:
+            for p2 in self.ports:
+                pass
+
+        nums = sorted(list(gates_by_num_ports.keys()), reverse=True)
+        for num in nums:
+            gates = gates_by_num_ports[num]
+            for gate in gates:
+                _ports = gate.ports
+                for i in range(0, len(gate.ports)):
+                    ports = '.'.join(gate.ports)
 
         for arg in self.args:
             for port in self.ports:
@@ -420,6 +486,7 @@ class GateBranch:
                     port_not_in[port].append(arg)
 
         #todo: check
+        '''
 
         print("check")
 
