@@ -82,6 +82,12 @@ def find_combinations (lista):
       combs.append(list(combination))
   return combs
 
+def summation(num):
+    res = 0
+    for i in range(1, num+1):
+        res += i
+    return res
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -482,13 +488,14 @@ class GateBranch:
         xors = []
         excluded_combs = []
         for size, combs in combs_by_size.items():
+            for comb in combs:
+                valid = True
+                for s in range(1, size):
+                    num_combs = size if s == size - 1 else summation(size-(s-1))
 
-            for s in range(1, size):
-                pass
-
-            for comb_hash in combs:
-                for comb_in in combs_inside:
-                    pass
+                for comb_hash in combs:
+                    for comb_in in combs_inside:
+                        pass
 
         '''
         port_not_in = {}
