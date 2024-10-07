@@ -435,6 +435,8 @@ class GateBranch:
         gates_by_allports = self.get_gates_by_allports()
 
         combinations = find_combinations(self.ports)
+
+        ''' nope, serve la combinazione completa
         to_remove = []
         for comb in combinations:
             if gates_by_allports not in '.'.join(comb):
@@ -442,25 +444,51 @@ class GateBranch:
 
         for rem in to_remove:
             combinations.remove(rem)
+        '''
 
         combs_by_size = {}
         combs_inside = {}
         for comb in combinations:
+            if len(comb) == 1:
+                continue
+
             comb_hash = '.'.join(comb)
             combs_in = []
+
+            not_subs = False
             for comb_in in combinations:
-                if len(comb_in) < len(comb):
+                if len(comb_in) - 1 == len(comb):
+                    is_comb_in = True
                     for p in comb_in:
                         if p not in comb:
+                            is_comb_in = False
                             break
-                    combs_in.append(comb_in)
 
-            if len(combs_in) > 0:
+                    if is_comb_in:
+                        comb_in_hash = '.'.join(comb_in)
+                        if comb_in_hash not in gates_by_allports:
+                            not_subs = True
+                            break
+                        else:
+                            combs_in.append(comb_in)
+
+            if not not_subs and len(combs_in) > 0:
                 combs_inside[comb_hash] = combs_in
                 size = len(combs_in)
                 if size not in combs_by_size:
                     combs_by_size[size] = []
-                combs_by_size[size].append(combs_in)
+                combs_by_size[size].append(comb_hash)
+
+        xors = []
+        excluded_combs = []
+        for size, combs in combs_by_size.items():
+
+            for s in range(1, size):
+                pass
+
+            for comb_hash in combs:
+                for comb_in in combs_inside:
+                    pass
 
         '''
         port_not_in = {}
