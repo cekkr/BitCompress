@@ -391,12 +391,21 @@ class GateBranch:
         # !XOR(A,B,C) => (!A*!B*!C)+(A*B*C)
         # (!A*B) + (A*!B) => !(!A*!B) + !(A*B) => !((A*B) + (!A*!B))
         # Simple and superficial implementation
-        args_in_ports = self.calculate_args_in_ports()
-        #empty_gate = self.get_empty_gate() # recalcualtion not needed: it never disappears
-        ports = list(args_in_ports.keys())
 
-        for arg in self.args:
-            pass
+        # Basic implementation: just check (A*B*..)+(!A*!B*!..)
+        if empty_gate is not None:
+            args_in_ports = self.calculate_args_in_ports()
+            ports = set(list(args_in_ports.keys()))
+
+            full_gate = None
+            for arg in self.args:
+                if ports == set(arg.ports): # is arg.ports a secure way (for the moment)?
+                    full_gate = arg
+                    break
+
+            if full_gate is not None:
+                # There are opposites to simplificate
+                pass
 
         print("check")
 
