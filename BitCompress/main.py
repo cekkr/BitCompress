@@ -490,8 +490,11 @@ class GateBranch:
         for size, combs in combs_by_size.items():
             for comb in combs:
                 valid = True
-                for s in range(1, size):
-                    num_combs = size if s == size - 1 else summation(size-(s-1))
+                included = []
+                for s in reversed(range(1, size)):
+                    num_combs = size if s == size - 1 else summation(size-(s-1)) # check for its correctness
+                    for comb_in in combs_by_size[s]:
+                        pass
 
                 for comb_hash in combs:
                     for comb_in in combs_inside:
