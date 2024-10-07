@@ -388,6 +388,7 @@ class GateBranch:
         # Look for XOR
         # (A*B)+(!A*!B) => !XOR(A,B) => AND!(A,B)+AND()
         # (!A*B)+(A*!B) => XOR(A,B) => AND!(A)+AND(B)
+        # !EXOR(A,B,C) => (!A*!B*!C)+(A*B*C)
         # Simple and superficial implementation
         #args_in_ports = self.calculate_args_in_ports()
         #empty_gate = self.get_empty_gate() # recalcualtion not needed: it never disappears
