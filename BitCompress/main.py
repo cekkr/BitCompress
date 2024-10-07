@@ -443,16 +443,24 @@ class GateBranch:
         for rem in to_remove:
             combinations.remove(rem)
 
+        combs_by_size = {}
         combs_inside = {}
         for comb in combinations:
             comb_hash = '.'.join(comb)
-            combs_inside[comb_hash] = []
+            combs_in = []
             for comb_in in combinations:
                 if len(comb_in) < len(comb):
                     for p in comb_in:
                         if p not in comb:
                             break
-                    combs_inside[comb_hash].append(comb_in)
+                    combs_in.append(comb_in)
+
+            if len(combs_in) > 0:
+                combs_inside[comb_hash] = combs_in
+                size = len(combs_in)
+                if size not in combs_by_size:
+                    combs_by_size[size] = []
+                combs_by_size[size].append(combs_in)
 
         '''
         port_not_in = {}
