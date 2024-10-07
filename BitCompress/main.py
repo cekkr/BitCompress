@@ -440,20 +440,9 @@ class GateBranch:
                 pass
 
         # Advance implementation: XOR
-        #args_in_ports = self.calculate_args_in_ports()
         gates_by_allports = self.get_gates_by_allports()
 
         combinations = find_combinations(self.ports)
-
-        ''' nope, serve la combinazione completa
-        to_remove = []
-        for comb in combinations:
-            if gates_by_allports not in '.'.join(comb):
-                to_remove.append(comb)
-
-        for rem in to_remove:
-            combinations.remove(rem)
-        '''
 
         combs_by_size = {}
         combs_inside = {}
@@ -495,7 +484,7 @@ class GateBranch:
                 valid = True
                 included = []
                 for s in reversed(range(1, size)):
-                    num_combs = size if s == size - 1 else summation(size-(s-1)) # check for its correctness
+                    num_combs = size if s == 1 or s == size - 1 else summation(size-(s-1)) # check for its correctness
 
                     size_combs = []
                     for comb_in in combs_by_size[s]:
@@ -524,7 +513,7 @@ class GateBranch:
                     excluded_combs.extend(included)
 
         #todo: Sostituisci gli xors ottenuti
-        
+
 
         print("check")
 
