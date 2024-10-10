@@ -82,6 +82,15 @@ def find_combinations (lista):
       combs.append(list(combination))
   return combs
 
+def by_size(list):
+    by_size = {}
+    for item in list:
+        size = len(item)
+        if size not in by_size:
+            by_size[size] = []
+        by_size[size].append(item)
+    return by_size
+
 def summation(num):
     res = 0
     for i in range(1, num+1):
@@ -96,6 +105,12 @@ def join_ports(ports):
         join += str(port)
     return join
 
+def strports_to_ports(str_ports):
+    ports = str_ports.split('.')
+    for i in range(0, len(ports)):
+        ports[i] = int(ports[i])
+    return ports
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -108,6 +123,10 @@ addImplicitNotPortOnBrothers = False
 class GateBranch:
     def __init__(self, map, gate, value=-1, is_basic = True):
         self.map: BitsMap = map
+
+        # Type checking
+        if type(value) is str:
+            value = int(value)
 
         self.gate = gate
         self.i_gate = gates.index(gate)
@@ -235,7 +254,7 @@ class GateBranch:
         return None
 
     def get_gate_with_ports(self, ports):
-        ports = set(self.ports)
+        ports = set(ports)
         for arg in self.args:
             if set(arg.ports) == ports:
                 return arg
@@ -275,7 +294,7 @@ class GateBranch:
         for port, num in ports.items():
             if port not in self.involved_ports:
                 self.involved_ports[port] = 0
-                if num > 0:
+                if num > 0 and port not in self.ports:
                     self.ports.append(port)
 
             self.involved_ports[port] += num
@@ -516,7 +535,7 @@ class GateBranch:
 
             not_subs = False
             for comb_in in combinations:
-                if len(comb_in) - 1 == len(comb):
+                if len(comb_in) < len(comb):
                     is_comb_in = True
                     for p in comb_in:
                         if p not in comb:
@@ -542,13 +561,18 @@ class GateBranch:
         excluded_combs = []
         for size, combs in combs_by_size.items():
             for comb in combs:
+                ports = strports_to_ports(comb)
+
+                sub_combs = find_combinations(ports)
+                sub_combs_by_size = by_size(sub_combs)
+
                 valid = True
                 included = []
                 for s in reversed(range(1, size)):
                     num_combs = size if s == 1 or s == size - 1 else summation(size-(s-1)) # check for its correctness
 
                     size_combs = []
-                    for comb_in in combs_by_size[s]:
+                    for comb_in in sub_combs_by_size[s]:
                         comb_in_hash = join_ports(comb_in)
 
                         if comb_in_hash in excluded_combs:
@@ -556,7 +580,10 @@ class GateBranch:
 
                         valid_comb_in = True
                         for comb_in_port in comb_in:
-                            if comb_in_port not in comb:
+                            # todo: This would check if the combinations has all necessary sub-combinations,
+                            # todo: but in this way it makes no sense. Is this implementation necessary?
+                            # todo: If I would more clever or rested, I would know it without thinking about it too much
+                            if comb_in_port not in ports: # umma umma, this makes no sense. it's always true
                                 valid_comb_in = False
                                 break
 
@@ -575,6 +602,7 @@ class GateBranch:
 
         # Substitute obtained XORs
         for xor_ports in xors:
+            xor_ports = strports_to_ports(xor_ports)
             xor_gate = GateBranch(self.map, 'xor')
 
             for port in xor_ports:
@@ -588,11 +616,12 @@ class GateBranch:
             # Remove ports combination
             combs = find_combinations(xor_ports)
             for comb in combs:
-                comb_gate = self.get_gate_with_ports(comb)
-                if comb_gate is not None:
-                    self.remove(comb_gate)
-                else:
-                    print("PAY ATTENTION: gate ports combination doesn't exist")
+                if len(comb) < len(xor_ports):
+                    comb_gate = self.get_gate_with_ports(comb)
+                    if comb_gate is not None:
+                        self.remove(comb_gate)
+                    else:
+                        print("PAY ATTENTION: gate ports combination doesn't exist")
 
 
         print("check")
@@ -608,6 +637,7 @@ class GateBranch:
                 self.remove_involved_ports(arg.involved_ports)
                 arg.check_if_used()
 
+    # todo: superfluous function
     def add_port(self, port):
         pin = GateBranch(self.map, 'pin', int(port))
         pin = self.map.check_gate(pin)
