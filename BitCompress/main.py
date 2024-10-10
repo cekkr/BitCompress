@@ -346,6 +346,7 @@ class GateBranch:
                 group_gate.add(port_pin)
 
             group_gate.add(inner_gates)
+            group_gate = self.map.check_gate(group_gate)
             self.add(group_gate)
 
 
