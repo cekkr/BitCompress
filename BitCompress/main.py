@@ -234,6 +234,14 @@ class GateBranch:
                 return arg
         return None
 
+    def get_gate_with_ports(self, ports):
+        ports = set(self.ports)
+        for arg in self.args:
+            if set(arg.ports) == ports:
+                return arg
+
+        return None
+
     def get_self_gates(self):
         selfGates = []
         for arg in self.args:
@@ -561,7 +569,26 @@ class GateBranch:
                     xors.append(comb)
                     excluded_combs.extend(included)
 
-        #todo: Sostituisci gli xors ottenuti
+        # Substitute obtained XORs
+        for xor_ports in xors:
+            xor_gate = GateBranch(self.map, 'xor')
+
+            for port in xor_ports:
+                pin = GateBranch(self.map, 'pin', port)
+                pin = self.map.check_gate(pin)
+                xor_gate.add(pin)
+
+            xor_gate = self.map.check_gate(xor_gate)
+            self.add(xor_gate)
+
+            # Remove ports combination
+            combs = find_combinations(xor_ports)
+            for comb in combs:
+                comb_gate = self.get_gate_with_ports(comb)
+                if comb_gate is not None:
+                    self.remove(comb_gate)
+                else:
+                    print("PAY ATTENTION: gate ports combination doesn't exist")
 
 
         print("check")
