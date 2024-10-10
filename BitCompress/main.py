@@ -626,6 +626,10 @@ class GateBranch:
                         print("PAY ATTENTION: gate ports combination doesn't exist")
 
 
+        #todo: Check for XOR(A,B)+AND(!A,!B) => !AND(A,B)
+
+        #todo: Check for NOT(NOT(AND(A,B))) => AND(A, B)
+
         print("check")
 
     def remove(self, arg, as_duplicate=False):
