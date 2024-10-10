@@ -403,7 +403,7 @@ class GateBranch:
 
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
         # Or more generically AND!(A,B) as (A*B)+A+B
-        #todo: Sorry, riki, but WHAT THE FUCK IS THAT?
+        #todo: Sorry, riki, but WHAT THE FUCK IS THAT? Write when it's a good idea do this
         convertNotAndToOrNot = False
         if convertNotAndToOrNot:
             full_gates = [] # aims to have the gates that uses every port in the group
