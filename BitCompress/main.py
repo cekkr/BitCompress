@@ -403,6 +403,7 @@ class GateBranch:
 
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
         # Or more generically AND!(A,B) as (A*B)+A+B
+        #todo: Sorry, riki, but WHAT THE FUCK IS THAT?
         convertNotAndToOrNot = False
         if convertNotAndToOrNot:
             full_gates = [] # aims to have the gates that uses every port in the group
@@ -520,6 +521,7 @@ class GateBranch:
                 self.add(not_xor_gate, in_process=True)
 
         # Advance implementation: XOR
+        # (!A*B)+(A*!B) => XOR(A,B) => AND!(A)+AND(B)
         gates_by_allports = self.get_gates_by_allports()
 
         combinations = find_combinations(self.ports)
@@ -580,9 +582,9 @@ class GateBranch:
 
                         valid_comb_in = True
                         for comb_in_port in comb_in:
-                            # todo: This would check if the combinations has all necessary sub-combinations,
-                            # todo: but in this way it makes no sense. Is this implementation necessary?
-                            # todo: If I would more clever or rested, I would know it without thinking about it too much
+                            #todo: This would check if the combinations has all necessary sub-combinations,
+                            # but in this way it makes no sense. Is this implementation necessary?
+                            # If I would more clever or rested, I would know it without thinking about it too much.
                             if comb_in_port not in ports: # umma umma, this makes no sense. it's always true
                                 valid_comb_in = False
                                 break
