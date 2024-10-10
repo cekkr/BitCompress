@@ -78,8 +78,9 @@ class GroupsSeeker():
             if cycles not in combs_by_cyles:
                 combs_by_cyles[cycles] = []
 
-            combs_by_cyles[cycles].append(comb)
-            combs.append(comb)
+            if len(comb) > 0 and comb[0] != -1:
+                combs_by_cyles[cycles].append(comb)
+                combs.append(comb)
 
         combs_items = sorted(self.combs.items(), key=lambda x: x[0])
         for cycles, groups in combs_items:

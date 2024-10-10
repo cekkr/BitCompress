@@ -111,7 +111,7 @@ class GateBranch:
         self.children: [GateBranch] = []
         self.down_complexity = -1
         self.up_complexity = -1
-        self.is_base_pin = True # if contains only elementary pins (or not pins)
+        self.is_base_pin = True if self.i_gate < 2 else False # if contains only elementary pins (or not pins)
         self.is_basic = is_basic # is basic table definition gate
         self.max_port = 0 if gate != 'pin' else value
         self.implicit = 1 if self.is_basic and self.gate == 'and' else 0 # 0 => no implicit, 1 => normal implicit (or not implicit if or)
@@ -134,21 +134,13 @@ class GateBranch:
             args_in_ports = {}
 
         for arg in self.args:
-            if self.gate == 'or' or not self.is_basic:
-                arg.calculate_args_in_ports(args_in_ports, distinguish_not=distinguish_not)
-            else: # is 'and'
-                argPorts = arg.get_base_pins()
-                for port in argPorts:
-                    pin_num = port.value
-
-                    if distinguish_not:
-                        if port.gate == 'not':
-                            pin_num = '!'+pin_num
-
-                    if pin_num not in args_in_ports:
-                        args_in_ports[pin_num] = []
-
-                    args_in_ports[pin_num].append(arg)
+            if arg.is_base_pin and (distinguish_not or arg.gate is 'pin'):
+                port = ('!' if arg.gate is 'not' else '') + str(arg.value)
+                if port not in args_in_ports:
+                    args_in_ports[port] = []
+                args_in_ports[port].append(self)
+            else:
+                arg.calculate_args_in_ports(args_in_ports)
 
         return args_in_ports
 
@@ -323,7 +315,7 @@ class GateBranch:
         for rem in to_remove:
             self.remove(rem, as_duplicate=True)
 
-    def group_by(self, ports):
+    def group_by(self, ports, in_process=True):
         related_gates = []
 
         for gate in self.args:
@@ -355,7 +347,7 @@ class GateBranch:
 
             group_gate.add(inner_gates)
             group_gate = self.map.check_gate(group_gate)
-            self.add(group_gate)
+            self.add(group_gate, in_process=in_process)
 
 
     def optimize_or(self):
@@ -399,7 +391,7 @@ class GateBranch:
         for port, conn in connections.items():
             to_remove = []
             for gate in full_gates:
-                if port not in gate.port:
+                if port not in gate.ports:
                     to_remove.append(gate)
 
             for rem in to_remove:
@@ -434,7 +426,7 @@ class GateBranch:
                 andGate = notGate
 
             andGate = self.map.check_gate(andGate)
-            self.add(andGate)
+            self.add(andGate, in_process=True)
 
         # Check for exclusion
         # (A*B)+(A) => !(A)
@@ -483,7 +475,7 @@ class GateBranch:
                 # There are opposites to simplificate in !XOR
                 not_xor_gate = GateBranch(self.map, 'not')
                 xor_gate = GateBranch(self.map, 'xor')
-                for port in full_gates.ports:
+                for port in full_gate.ports:
                     pin = GateBranch(self.map, 'pin', port)
                     pin = self.map.check_gate(pin)
                     xor_gate.add(pin)
@@ -494,7 +486,7 @@ class GateBranch:
 
                 self.remove(empty_gate)
                 self.remove_ports(full_gate)
-                self.add(not_xor_gate)
+                self.add(not_xor_gate, in_process=True)
 
         # Advance implementation: XOR
         gates_by_allports = self.get_gates_by_allports()
@@ -579,7 +571,7 @@ class GateBranch:
                 xor_gate.add(pin)
 
             xor_gate = self.map.check_gate(xor_gate)
-            self.add(xor_gate)
+            self.add(xor_gate, in_process=True)
 
             # Remove ports combination
             combs = find_combinations(xor_ports)
@@ -605,7 +597,7 @@ class GateBranch:
                 arg.check_if_used()
 
     def add_port(self, port):
-        pin = GateBranch(self.map, 'pin', port)
+        pin = GateBranch(self.map, 'pin', int(port))
         pin = self.map.check_gate(pin)
         self.add(pin)
 
