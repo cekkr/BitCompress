@@ -315,6 +315,40 @@ class GateBranch:
         for rem in to_remove:
             self.remove(rem, as_duplicate=True)
 
+    def group_by(self, ports):
+        related_gates = []
+
+        for gate in self.args:
+            has_ports = True
+            for port in gate.ports:
+                if port not in ports:
+                    has_ports = False
+                    break
+
+            if has_ports:
+                related_gates.append(gate)
+
+        if len(related_gates) > 0:
+            group_gate = GateBranch(self.map, 'and')
+            inner_gates = GateBranch(self.map, self.gate)
+
+            for gate in related_gates:
+                self.remove(gate)
+                gate.remove_ports(ports)
+                gate = self.map.check_gate(gate)
+                inner_gates.add(gate)
+
+            inner_gates = self.map.check_gate(inner_gates)
+
+            for port in ports:
+                port_pin = GateBranch(self.map, 'pin', port)
+                port_pin = self.map.check_gate(port_pin)
+                group_gate.add(port_pin)
+
+            group_gate.add(inner_gates)
+            self.add(group_gate)
+
+
     def optimize_or(self):
         if self.gate != 'or':
             return
@@ -333,7 +367,8 @@ class GateBranch:
         ports_groups = calculate_ports_groups(args_in_ports)
 
         if len(ports_groups) > 0:
-            print("todo: handle grouping") #todo: handle discovered groups
+            for ports in ports_groups:
+                self.group_by(ports)
 
         args_in_ports = self.calculate_args_in_ports()
         empty_gate = self.get_empty_gate()

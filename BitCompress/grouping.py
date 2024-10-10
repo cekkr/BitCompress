@@ -7,7 +7,7 @@ def sort_dict_by_length(dict):
 
 
 def calculate_ports_groups(gates_by_ports):
-    groups = {}
+    #groups = {}
     ports_sorted = sort_dict_by_length(gates_by_ports)
     ports_by_length = {}
     for port, times in ports_sorted:
