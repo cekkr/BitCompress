@@ -88,6 +88,14 @@ def summation(num):
         res += i
     return res
 
+def join_ports(ports):
+    join = ''
+    for port in ports:
+        if len(join) > 0:
+            join += '.'
+        join += str(port)
+    return join
+
 #########################################################
 
 gates = ['pin', 'not', 'and', 'or', 'xor']
@@ -151,7 +159,7 @@ class GateBranch:
         return gates
 
     def get_ports_hash(self):
-        return '.'.join(self.ports)
+        return join_ports(self.ports)
 
     def calc_complexity(self, complexity=0):
         # Calculate num involved ports
@@ -439,9 +447,11 @@ class GateBranch:
             sequences = []
             for arg in self.args:
                 ports = arg.ports
-                ports.remove(port)
 
-                comb = ''.join(ports)
+                if port in ports:
+                    ports.remove(port)
+
+                comb = join_ports(ports)
                 if comb in sequences:
                     exclude.append([port, common[comb], arg])
                 else:
@@ -499,7 +509,7 @@ class GateBranch:
             if len(comb) == 1:
                 continue
 
-            comb_hash = '.'.join(comb)
+            comb_hash = join_ports(comb)
             combs_in = []
 
             not_subs = False
@@ -512,7 +522,7 @@ class GateBranch:
                             break
 
                     if is_comb_in:
-                        comb_in_hash = '.'.join(comb_in)
+                        comb_in_hash = join_ports(comb_in)
                         if comb_in_hash not in gates_by_allports:
                             not_subs = True
                             break
@@ -537,7 +547,7 @@ class GateBranch:
 
                     size_combs = []
                     for comb_in in combs_by_size[s]:
-                        comb_in_hash = '.'.join(comb_in)
+                        comb_in_hash = join_ports(comb_in)
 
                         if comb_in_hash in excluded_combs:
                             continue
