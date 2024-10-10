@@ -384,57 +384,59 @@ class GateBranch:
 
         # Look for NOT!(AND!(A, B)) => OR(NOT(A),NOT(B))
         # Or more generically AND!(A,B) as (A*B)+A+B
-        full_gates = [] # aims to have the gates that uses every port in the group
+        convertNotAndToOrNot = False
+        if convertNotAndToOrNot:
+            full_gates = [] # aims to have the gates that uses every port in the group
 
-        connections = {}
-        for port, args in args_in_ports.items():
-            connections[port] = []
-            for arg in self.args:
-                full_gates.append(arg)
-                for subport in arg.ports:
-                    if subport not in connections:
-                        connections[port].append(subport)
+            connections = {}
+            for port, args in args_in_ports.items():
+                connections[port] = []
+                for arg in self.args:
+                    full_gates.append(arg)
+                    for subport in arg.ports:
+                        if subport not in connections:
+                            connections[port].append(subport)
 
-        group = list(connections.keys())
-        for port, conn in connections.items():
-            to_remove = []
-            for gate in full_gates:
-                if port not in gate.ports:
-                    to_remove.append(gate)
+            group = list(connections.keys())
+            for port, conn in connections.items():
+                to_remove = []
+                for gate in full_gates:
+                    if port not in gate.ports:
+                        to_remove.append(gate)
 
-            for rem in to_remove:
-                full_gates.remove(rem)
+                for rem in to_remove:
+                    full_gates.remove(rem)
 
-            included = [port]
-            for connPort in conn:
-                included.append(connPort)
+                included = [port]
+                for connPort in conn:
+                    included.append(connPort)
 
-            to_remove = []
-            for groupPort in group:
-                if groupPort not in included:
-                    to_remove.append(groupPort)
+                to_remove = []
+                for groupPort in group:
+                    if groupPort not in included:
+                        to_remove.append(groupPort)
 
-            for rem in to_remove:
-                group.remove(rem)
+                for rem in to_remove:
+                    group.remove(rem)
 
-        if empty_gate is not None and len(full_gates) > 0: # it's always true
-            return self.set_always_true()
+            if empty_gate is not None and len(full_gates) > 0: # it's always true
+                return self.set_always_true()
 
-        if len(group) > 0:
-            self.remove_ports(group)
+            if len(group) > 0:
+                self.remove_ports(group)
 
-            andGate = GateBranch(self.map, 'and')
+                andGate = GateBranch(self.map, 'and')
 
-            for port in group:
-                andGate.add_port(port)
+                for port in group:
+                    andGate.add_port(port)
 
-            if empty_gate is None: # is NOT AND
-                notGate = GateBranch(self.map, 'not')
-                notGate.add(andGate)
-                andGate = notGate
+                if empty_gate is None: # is NOT AND
+                    notGate = GateBranch(self.map, 'not')
+                    notGate.add(andGate)
+                    andGate = notGate
 
-            andGate = self.map.check_gate(andGate)
-            self.add(andGate, in_process=True)
+                andGate = self.map.check_gate(andGate)
+                self.add(andGate, in_process=True)
 
         # Check for exclusion
         # (A*B)+(A) => !(A)
@@ -481,7 +483,7 @@ class GateBranch:
                     full_gate = arg
                     break
 
-            if full_gate is not None:
+            if full_gate is not None and len(full_gate.ports) > 0:
                 # There are opposites to simplificate in !XOR
                 not_xor_gate = GateBranch(self.map, 'not')
                 xor_gate = GateBranch(self.map, 'xor')
