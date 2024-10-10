@@ -472,8 +472,21 @@ class GateBranch:
                     break
 
             if full_gate is not None:
-                #todo: There are opposites to simplificate in !XOR
-                pass
+                # There are opposites to simplificate in !XOR
+                not_xor_gate = GateBranch(self.map, 'not')
+                xor_gate = GateBranch(self.map, 'xor')
+                for port in full_gates.ports:
+                    pin = GateBranch(self.map, 'pin', port)
+                    pin = self.map.check_gate(pin)
+                    xor_gate.add(pin)
+
+                xor_gate = self.map.check_gate(xor_gate)
+                not_xor_gate.add(xor_gate)
+                not_xor_gate = self.map.check_gate(not_xor_gate)
+
+                self.remove(empty_gate)
+                self.remove_ports(full_gate)
+                self.add(not_xor_gate)
 
         # Advance implementation: XOR
         gates_by_allports = self.get_gates_by_allports()
